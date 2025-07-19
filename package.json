@@ -1,0 +1,45 @@
+{
+  "name": "@degreesign/analytics",
+  "version": "0.0.1",
+  "main": "dist/node/ds_analytics.node.min.js",
+  "module": "dist/node/ds_analytics.node.min.js",
+  "browser": "dist/browser/ds_analytics.min.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DegreeSign/ds_analytics.git"
+  },
+  "keywords": [
+    "degreesign",
+    "web analytics",
+    "privacy analytics",
+    "web app"
+  ],
+  "author": "DegreeSign",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DegreeSign/ds_analytics/issues"
+  },
+  "homepage": "https://github.com/DegreeSign/ds_analytics#readme",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "clean-webpack-plugin": "^4.0.0",
+    "esbuild": "^0.24.2",
+    "terser-webpack-plugin": "^5.3.11",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "files": [
+    "dist/"
+  ]
+}

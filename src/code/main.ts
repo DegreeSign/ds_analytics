@@ -1,0 +1,12 @@
+const
+    config = ({
+
+    }:{
+        
+    }) => {
+
+    };
+
+export {
+    config,
+}
