@@ -9,9 +9,6 @@ const commonConfig = {
     entry: `./src/index.ts`, // Entry point for your library
     resolve: {
         extensions: [`.ts`, `.js`], // Resolve .ts and .js files
-        fallback: {
-            fetch: require.resolve(`node-fetch`),
-        },
     },
     module: {
         rules: [
@@ -44,8 +41,8 @@ module.exports = [{
     target: `web`,
     output: {
         path: path.resolve(__dirname, `dist/browser`), // Separate output directory
-        filename: `ds_analytics.min.js`,
-        library: `ds_analytics`, // Global variable for browsers
+        filename: `degreesign.min.js`,
+        library: `dsAnalytics`, // Global variable for browsers
         libraryTarget: `umd`, // UMD for browser
         globalObject: `this`,
     },
@@ -62,7 +59,7 @@ module.exports = [{
     },
     output: {
         path: path.resolve(__dirname, `dist/node`), // Separate output directory
-        filename: `ds_analytics.node.min.js`,
+        filename: `degreesign.node.min.js`,
         libraryTarget: `commonjs`, // CommonJS for Node.js
         globalObject: `typeof globalThis !== 'undefined' ? globalThis : (typeof self !== 'undefined' ? self : this)`,
     },

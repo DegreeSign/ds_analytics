@@ -21,4 +21,4 @@ ipReset: () => {
     ips: string;
     ipRange: IPRange[];
 }) => string;
-export { chkIp as ipCheck, wIP as ipWhiteList, pIP as ipPaidList, ipNum as ipNumericalValue, ipAr as ipArray, ipReset as ipResetLimits, rateLimits as ipRateLimits, updateIPData as ipCountryDataUpdate, ipCountryCode, };
+export { chkIp, wIP, pIP, ipNum, ipAr, ipReset, rateLimits, updateIPData, ipCountryCode, };

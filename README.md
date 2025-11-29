@@ -5,14 +5,7 @@ Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analy
 
 OR use in browsers through CDN
 
-`<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.1/dist/browser/ds_analytics.min.js"></script>`
+`<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.2/dist/browser/degreesign.min.js"></script>`
 
-Note: updated configuration using `config`
-
-```
-ds_analytics.config({
-    
-})
-```
 
 ## Development In Progress...
