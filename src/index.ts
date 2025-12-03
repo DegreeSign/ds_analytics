@@ -154,4 +154,8 @@ export {
     rateLimits as ipRateLimits,
     updateIPData as ipCountryDataUpdate,
     ipCountryCode,
+    IPList,
+    RateLimits,
+    IPCountryRow,
+    IPRange,
 }
