@@ -5,7 +5,9 @@ Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analy
 
 OR use in browsers through CDN
 
-`<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.2/dist/browser/degreesign.min.js"></script>`
+```html
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.5/dist/browser/degreesign.min.js"></script>
+```
 
 ```typescript
     const 

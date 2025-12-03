@@ -26,7 +26,7 @@ interface IPCountryRow {
     country: string;
 }
 
-/** Start IP Num, End IP Num, Country Code */
+/** Start IP Num, End IP Num, Country Code, [3758092288,3758093311,"HK"] */
 type IPRange = [number, number, string];
 
 export {

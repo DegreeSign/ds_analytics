@@ -1,6 +1,3 @@
-import axios from "axios";
-import csvParser from "csv-parser";
-import { Stream } from "stream";
 import { IPCountryRow, IPList, IPRange, RateLimits } from "./types";
 import { NumberObj, tN } from "@degreesign/utils";
 
@@ -89,34 +86,39 @@ const
     updateIPData = async (): Promise<IPRange[]> => await new Promise(async resolve => {
         try {
             const
-                response = await axios.get<NodeJS.ReadableStream>(ipSourceUrl, { responseType: "stream" }),
-                data: Stream = response.data.pipe(csvParser({
-                    headers: ['start_ip_num', 'end_ip_num', 'country'],
-                    skipLines: 0
-                })),
+                response = await fetch(ipSourceUrl),
+                reader = response?.body!.getReader(),
+                decoder = new TextDecoder(),
                 ipRanges: IPRange[] = [];
+            let buffer = "";
 
-            data
-                .on("data", (row: IPCountryRow) => {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
                     const
-                        startNum: number = parseInt(row.start_ip_num),
-                        endNum: number = parseInt(row.end_ip_num),
-                        country: string = row.country;
+                        [start_ip_num, end_ip_num, country] = line.split(","),
+                        startNum = parseInt(start_ip_num),
+                        endNum = parseInt(end_ip_num);
                     if (startNum && country) {
-                        ipRanges.push([startNum, endNum, country]);
-                    }
-                })
-                .on("end", () => {
-                    if (!ipRanges?.length)
-                        console.log(`updateIPData no data`);
-                    else resolve(ipRanges)
-                })
-                .on("error", (error: Error) => {
-                    console.log(`updateIPData error`, error);
-                });
+                        ipRanges.push([startNum, endNum, country.trim()]);
+                    };
+                };
+            };
+
+            if (!ipRanges?.length)
+                console.log(`updateIPData no data`);
+            else resolve(ipRanges);
+
         } catch (e) {
             console.log(`updateIPData failed`, e);
-            return resolve([])
+            resolve([]);
         };
     }),
     ipCountryCode = ({
