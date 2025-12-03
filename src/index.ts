@@ -70,7 +70,7 @@ const
         : [],
 
     /** IP object reset */
-    ipReset = () => {
+    ipReset = (): IPList => {
         return { // ip lists
             /**  ip pro list + counter */
             p: {},

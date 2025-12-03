@@ -7,16 +7,7 @@ ipNum: (ip: string) => number,
 /** IP array */
 ipAr: (ips: string) => string[], 
 /** IP object reset */
-ipReset: () => {
-    /**  ip pro list + counter */
-    p: {};
-    /**  ip cloud white list + counter */
-    w: {};
-    /**  ip black list */
-    b: never[];
-    /**  ip general list + counter */
-    l: {};
-}, updateIPData: () => Promise<IPRange[]>, ipCountryCode: ({ code, ips, ipRange, }: {
+ipReset: () => IPList, updateIPData: () => Promise<IPRange[]>, ipCountryCode: ({ code, ips, ipRange, }: {
     code?: string;
     ips: string;
     ipRange: IPRange[];
