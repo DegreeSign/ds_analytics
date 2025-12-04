@@ -3,7 +3,7 @@ import { rateLimits } from "./code/constants";
 import { chkIp, wIP, pIP, ipReset } from "./code/manage";
 import { updateIPData } from "./code/range";
 import { ipData, ipUpdateIntervals } from "./code/update";
-import { IPCountryRange, IPList, IPRange, RateLimits } from "./types";
+import { IPCountryRange, IPData, IPList, IPRange, RateLimits } from "./types";
 
 export {
     chkIp as ipCheck,
@@ -20,5 +20,6 @@ export {
     IPCountryRange,
     IPRange,
     ipData,
+    IPData,
     ipUpdateIntervals,
 }
