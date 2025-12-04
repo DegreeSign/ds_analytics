@@ -23,7 +23,7 @@ OR use in browsers through CDN
     ipWhiteList(requestIPString, ipList);
 
     // Mark IP as paid for higher limits
-    ipPaidList(requestIPString, ipList);
+    ipPriorityList(requestIPString, ipList);
 
     // IP country code
     ipCountryCode(requestIPString, ipRange);

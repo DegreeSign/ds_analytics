@@ -25,14 +25,14 @@ const
                 ipL = ipData.ipList,
                 generalList = ipRateLimits.generalAccess, // general user
                 whiteList = ipRateLimits.whiteListed, // white list
-                paidList = ipRateLimits.priorityAccess; // paid list
+                priorityList = ipRateLimits.priorityAccess; // priority list
 
             // check array against limits
             const ipA = ipArray(ips);
             for (let i = 0; i < ipA.length; i++) {
                 const u = ipA[i]; // check each ip
                 if (u) {
-                    if (ipL.p[u] < paidList || ipL.w[u] < whiteList) { break; } // cloud list
+                    if (ipL.p[u] < priorityList || ipL.w[u] < whiteList) { break; } // cloud list
                     else if (ipL.b.indexOf(u) > -1) { return 0; } // black list
                     else if (ipL.l[u]) {
                         if (ipL.l[u] > generalList) {
@@ -57,7 +57,7 @@ const
         } catch (e) { console.log(seoDt(), `Checking IP whitelist failed`, e); };
     },
     /** IP add to priority list */
-    ipPaidList = (ips: string) => {
+    ipPriorityList = (ips: string) => {
         try {
             const
                 ipL = ipData.ipList,
@@ -73,5 +73,5 @@ export {
     ipResetLimits,
     ipCheck,
     ipWhiteList,
-    ipPaidList,
+    ipPriorityList,
 }
