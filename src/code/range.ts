@@ -2,7 +2,7 @@ import { IPRange } from "../types";
 import { ipSourceUrl } from "./constants";
 
 const
-    updateIPData = async (): Promise<IPRange[]> => await new Promise(async resolve => {
+    ipCountryDataUpdate = async (): Promise<IPRange[]> => await new Promise(async resolve => {
         try {
             const
                 response = await fetch(ipSourceUrl),
@@ -32,15 +32,15 @@ const
             };
 
             if (!ipRanges?.length)
-                console.log(`updateIPData no data`);
+                console.log(`ipCountryDataUpdate no data`);
             else resolve(ipRanges);
 
         } catch (e) {
-            console.log(`updateIPData failed`, e);
+            console.log(`ipCountryDataUpdate failed`, e);
             resolve([]);
         };
     });
 
 export {
-    updateIPData,
+    ipCountryDataUpdate,
 }

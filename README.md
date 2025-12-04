@@ -12,7 +12,7 @@ OR use in browsers through CDN
 ```typescript
     const 
         /** IPs list */
-		ipList = ipReset(),
+		ipList = ipResetLimits(),
 		/** IP current country range */
 		ipRange = await ipCountryDataUpdate();
 

@@ -6,5 +6,5 @@ ipSourceUrl: string,
 /** country codes ID */
 countriesCodes: NumberObj, 
 /** IP rate limits */
-rateLimits: RateLimits;
-export { ipSourceUrl, countriesCodes, rateLimits, };
+ipRateLimits: RateLimits;
+export { ipSourceUrl, countriesCodes, ipRateLimits, };

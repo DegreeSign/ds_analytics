@@ -1,11 +1,12 @@
 import { seoDt } from "@degreesign/utils";
-import { IPList, RateLimits } from "../types";
-import { ipAr } from "./analyse";
-import { rateLimits } from "./constants";
+import { IPList } from "../types";
+import { ipArray } from "./analyse";
+import { ipRateLimits } from "./constants";
+import { ipData } from "./update";
 
 const
     /** IP object reset */
-    ipReset = (): IPList => {
+    ipResetLimits = (): IPList => {
         return { // ip lists
             /**  ip pro list + counter */
             p: {},
@@ -18,15 +19,16 @@ const
         }
     },
     /** IP spam check */
-    chkIp = (ips: string, ipL: IPList, limits: RateLimits = rateLimits) => {
+    ipCheck = (ips: string) => {
         try {
             const
-                generalList = limits.generalAccess, // general user
-                whiteList = limits.whiteListed, // white list
-                paidList = limits.priorityAccess; // paid list
+                ipL = ipData.ipList,
+                generalList = ipRateLimits.generalAccess, // general user
+                whiteList = ipRateLimits.whiteListed, // white list
+                paidList = ipRateLimits.priorityAccess; // paid list
 
             // check array against limits
-            const ipA = ipAr(ips);
+            const ipA = ipArray(ips);
             for (let i = 0; i < ipA.length; i++) {
                 const u = ipA[i]; // check each ip
                 if (u) {
@@ -43,9 +45,11 @@ const
         } catch (e) { console.log(seoDt(), `Validating IP failed`, e); };
     },
     /** IP add to whitelist */
-    wIP = (ips: string, ipL: IPList) => {
+    ipWhiteList = (ips: string) => {
         try {
-            const list = ipAr(ips);
+            const
+                ipL = ipData.ipList,
+                list = ipArray(ips);
             for (let i = 0; i < list.length; i++) {
                 const u = list[i];
                 u ? ipL.w[u] ? ipL.w[u] += 1 : ipL.w[u] = 1 : 0
@@ -53,9 +57,11 @@ const
         } catch (e) { console.log(seoDt(), `Checking IP whitelist failed`, e); };
     },
     /** IP add to priority list */
-    pIP = (ips: string, ipL: IPList) => {
+    ipPaidList = (ips: string) => {
         try {
-            const list = ipAr(ips);
+            const
+                ipL = ipData.ipList,
+                list = ipArray(ips);
             for (let i = 0; i < list.length; i++) {
                 const u = list[i];
                 u ? ipL.p[u] ? ipL.p[u] += 1 : ipL.p[u] = 1 : 0
@@ -64,8 +70,8 @@ const
     };
 
 export {
-    ipReset,
-    chkIp,
-    wIP,
-    pIP,
+    ipResetLimits,
+    ipCheck,
+    ipWhiteList,
+    ipPaidList,
 }

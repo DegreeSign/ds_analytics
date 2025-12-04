@@ -1,6 +1,6 @@
 {
   "name": "@degreesign/analytics",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "main": "dist/node/degreesign.node.min.js",
   "module": "dist/node/degreesign.node.min.js",
   "browser": "dist/browser/degreesign.min.js",

@@ -3,7 +3,7 @@ import { countriesCodes } from "./constants";
 
 const
     /** IP Num */
-    ipNum = (ip: string) => {
+    ipNumericalValue = (ip: string) => {
         try {
             return ip?.split('.')?.reduce((acc, octet) => acc * 256 + parseInt(octet), 0);
         } catch {
@@ -11,7 +11,7 @@ const
         };
     },
     /** IP array */
-    ipAr = (ips: string) => ips ?
+    ipArray = (ips: string) => ips ?
         ips.match(`, `) ? ips.split(`, `)
             : ips.match(`::ffff:`) ? ips.split(`::ffff:`)
                 : []
@@ -26,9 +26,9 @@ const
         ipRange: IPRange[],
     }): string => {
         try {
-            const ipSelected = ipAr(ips)?.find(ip => !ip?.includes(`:`));
+            const ipSelected = ipArray(ips)?.find(ip => !ip?.includes(`:`));
             if (ipSelected) {
-                const num = ipNum(ipSelected)
+                const num = ipNumericalValue(ipSelected)
                 for (const [startNum, endNum, countryCode] of ipRange)
                     if (num >= startNum && num <= endNum) {
                         code = countryCode;
@@ -42,7 +42,7 @@ const
     };
 
 export {
-    ipNum,
-    ipAr,
+    ipNumericalValue,
+    ipArray,
     ipCountryCode,
 }
