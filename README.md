@@ -10,23 +10,11 @@ OR use in browsers through CDN
 ```
 
 ```typescript
-    const 
-        /** IPs list */
-		ipList = ipResetLimits(),
-		/** IP current country range */
-		ipRange = await ipCountryDataUpdate();
+    // Update IP range data
+    await ipRangeUpdate();
 
-    // Check if IP is beyond limit
-    ipCheck(requestIPString, ipList);
-
-    // White list an ip
-    ipWhiteList(requestIPString, ipList);
-
-    // Mark IP as paid for higher limits
-    ipPriorityList(requestIPString, ipList);
-
-    // IP country code
-    ipCountryCode(requestIPString, ipRange);
+    // Check IP against limit
+    ipCheck(requestIPString);
 ```
 
 ## Development In Progress...
