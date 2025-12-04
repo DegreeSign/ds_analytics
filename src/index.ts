@@ -2,8 +2,8 @@ import { ipNum, ipAr, ipCountryCode } from "./code/analyse";
 import { rateLimits } from "./code/constants";
 import { chkIp, wIP, pIP, ipReset } from "./code/manage";
 import { updateIPData } from "./code/range";
-import { ipList, ipRange, ipUpdateIntervals } from "./code/update";
-import { IPCountryRow, IPList, IPRange, RateLimits } from "./types";
+import { ipData, ipUpdateIntervals } from "./code/update";
+import { IPCountryRange, IPList, IPRange, RateLimits } from "./types";
 
 export {
     chkIp as ipCheck,
@@ -17,9 +17,8 @@ export {
     ipCountryCode,
     IPList,
     RateLimits,
-    IPCountryRow,
+    IPCountryRange,
     IPRange,
-    ipList,
-    ipRange,
+    ipData,
     ipUpdateIntervals,
 }

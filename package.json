@@ -1,6 +1,6 @@
 {
   "name": "@degreesign/analytics",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "main": "dist/node/degreesign.node.min.js",
   "module": "dist/node/degreesign.node.min.js",
   "browser": "dist/browser/degreesign.min.js",
@@ -12,6 +12,7 @@
     "type": "git",
     "url": "git+https://github.com/DegreeSign/ds_analytics.git"
   },
+  "description": "DegreeSign Server Analytics SDK",
   "keywords": [
     "degreesign",
     "web analytics",

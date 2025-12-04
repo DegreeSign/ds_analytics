@@ -1,4 +1,5 @@
 import { NumberObj } from "@degreesign/utils";
+/** IPs list */
 interface IPList {
     /**  ip pro list + counter */
     p: NumberObj;
@@ -9,19 +10,27 @@ interface IPList {
     /**  ip general list + counter */
     l: NumberObj;
 }
+/** IP Rate limits */
 interface RateLimits {
     /** general user */
-    general: number;
+    generalAccess: number;
     /** white list */
-    white: number;
+    whiteListed: number;
     /** paid list */
-    paid: number;
+    priorityAccess: number;
 }
-interface IPCountryRow {
+/** IP Country Range */
+interface IPCountryRange {
     start_ip_num: string;
     end_ip_num: string;
     country: string;
 }
 /** Start IP Num, End IP Num, Country Code, [3758092288,3758093311,"HK"] */
 type IPRange = [number, number, string];
-export { IPList, RateLimits, IPCountryRow, IPRange, };
+interface IPData {
+    /** IPs list */
+    ipList: IPList;
+    /** IP range */
+    ipRange: IPRange[];
+}
+export { IPList, RateLimits, IPCountryRange, IPRange, IPData, };

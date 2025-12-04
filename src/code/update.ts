@@ -1,27 +1,25 @@
 import { seoDt, oneDay, oneMin } from "@degreesign/utils";
 import { redJ, wrtJ } from "@degreesign/cache";
 import { ipReset } from "./manage";
-import { IPRange } from "../types";
+import { IPData } from "../types";
 import { updateIPData } from "./range";
 
-let
-    /** IPs list */
-    ipL = ipReset(),
-    /** IP range */
-    ipRange: IPRange[] = redJ(`ip_range.json`) || [];
-
 const
+    ipData: IPData = {
+        ipList: ipReset(),
+        ipRange: redJ(`ip_range.json`) || [],
+    },
     ipRangeUpdate = async () => {
         try {
             const ranges = await updateIPData();
             if (ranges?.length) {
-                ipRange = ranges;
+                ipData.ipRange = ranges;
                 wrtJ(`ip_range.json`, ranges);
             };
         } catch (e) { console.log(seoDt(), `ipRangeUpdate failed`, e); };
     },
     ipListReset = () => {
-        ipL = ipReset()
+        ipData.ipList = ipReset()
     };
 
 let
@@ -49,7 +47,6 @@ const
     };
 
 export {
-    ipL as ipList,
-    ipRange,
+    ipData,
     ipUpdateIntervals,
 }

@@ -1,4 +1,4 @@
-# DegreeSign Analytics - Private, simple, essential analytics
+# DegreeSign Server Analytics SDK - Private, simple, essential analytics
 
 ## Setup
 Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analytics` 
@@ -6,7 +6,7 @@ Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analy
 OR use in browsers through CDN
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.7/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.8/dist/browser/degreesign.min.js"></script>
 ```
 
 ```typescript

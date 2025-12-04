@@ -21,9 +21,9 @@ const
     chkIp = (ips: string, ipL: IPList, limits: RateLimits = rateLimits) => {
         try {
             const
-                generalList = limits.general, // general user
-                whiteList = limits.white, // white list
-                paidList = limits.paid; // paid list
+                generalList = limits.generalAccess, // general user
+                whiteList = limits.whiteListed, // white list
+                paidList = limits.priorityAccess; // paid list
 
             // check array against limits
             const ipA = ipAr(ips);
