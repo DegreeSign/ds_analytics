@@ -1,8 +1,9 @@
-import { seoDt } from "@degreesign/utils";
-import { IPList } from "../types";
+import { seoDt, oneDay, oneMin } from "@degreesign/utils";
+import { redJ, wrtJ } from "@degreesign/cache";
+import { IPList, IPData } from "../types";
 import { ipArray } from "./analyse";
 import { ipRateLimits } from "./constants";
-import { ipData } from "./update";
+import { ipCountryDataUpdate } from "./range";
 
 const
     /** IP object reset */
@@ -67,6 +68,22 @@ const
                 u ? ipL.p[u] ? ipL.p[u] += 1 : ipL.p[u] = 1 : 0
             };
         } catch (e) { console.log(seoDt(), `Checking IP priority list failed`, e); };
+    },
+    ipData: IPData = {
+        ipList: ipResetLimits(),
+        ipRange: redJ(`ip_range.json`) || [],
+    },
+    ipRangeUpdate = async () => {
+        try {
+            const ranges = await ipCountryDataUpdate();
+            if (ranges?.length) {
+                ipData.ipRange = ranges;
+                wrtJ(`ip_range.json`, ranges);
+            };
+        } catch (e) { console.log(seoDt(), `ipRangeUpdate failed`, e); };
+    },
+    ipListReset = () => {
+        ipData.ipList = ipResetLimits()
     };
 
 export {
@@ -74,4 +91,7 @@ export {
     ipCheck,
     ipWhiteList,
     ipPriorityList,
+    ipData,
+    ipRangeUpdate,
+    ipListReset,
 }
