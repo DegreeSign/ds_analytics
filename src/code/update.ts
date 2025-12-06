@@ -2,29 +2,36 @@ import { oneDay, oneMin } from "@degreesign/utils";
 import { ipRangeUpdate, ipListReset } from "./manage";
 
 let
-    rangeRefresh = setInterval(ipRangeUpdate, oneDay),
-    resetJob = setInterval(ipListReset, oneMin * 5);
+    ipRangeRefresh = setInterval(() => { }, oneDay),
+    ipLimitResetJob = setInterval(() => { }, oneDay);
 
 const
-    ipUpdateIntervals = ({
-        rangeRefreshInterval,
-        ipLimitResetInterval,
+    ipStart = async ({
+        ipRangeRefreshInterval = oneDay,
+        ipLimitResetInterval = oneMin * 5,
     }: {
         /** default is 24 hours */
-        rangeRefreshInterval?: number;
+        ipRangeRefreshInterval?: number;
         /** default is 5 mins */
         ipLimitResetInterval?: number;
     }) => {
-        if (typeof rangeRefreshInterval == `number`) {
-            clearInterval(rangeRefresh);
-            rangeRefresh = setInterval(ipRangeUpdate, rangeRefreshInterval);
+
+        // start service
+        await ipRangeUpdate();
+
+        // update refresh intervals
+        if (typeof ipRangeRefreshInterval == `number`) {
+            clearInterval(ipRangeRefresh);
+            ipRangeRefresh = setInterval(ipRangeUpdate, ipRangeRefreshInterval);
         };
+
+        // reset ip limits
         if (typeof ipLimitResetInterval == `number`) {
-            clearInterval(resetJob);
-            resetJob = setInterval(ipListReset, ipLimitResetInterval);
+            clearInterval(ipLimitResetJob);
+            ipLimitResetJob = setInterval(ipListReset, ipLimitResetInterval);
         };
     };
 
 export {
-    ipUpdateIntervals
-}
+    ipStart,
+};

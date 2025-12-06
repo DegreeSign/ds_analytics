@@ -10,8 +10,11 @@ OR use in browsers through CDN
 ```
 
 ```typescript
-    // Update IP range data
-    await ipRangeUpdate();
+    // Start IP Service
+    await ipStart({
+        ipRangeRefreshInterval: oneDay,
+        ipLimitResetInterval: oneMin * 5,
+    });
 
     // Check IP against limit
     ipCheck(requestIPString);
