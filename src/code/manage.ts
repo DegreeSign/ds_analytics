@@ -71,7 +71,7 @@ const
     },
     ipData: IPData = {
         ipList: ipResetLimits(),
-        ipRange: redJ(`ip_range.json`) || [],
+        ipRange: redJ(`ip_range.json`, true) || [],
     },
     ipRangeUpdate = async () => {
         try {
