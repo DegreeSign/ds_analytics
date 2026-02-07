@@ -83,6 +83,21 @@ const
         };
         return ``
     },
+    /** web data */
+    webData = (logged?: boolean): PageVisitPayload => {
+        const
+            referrer = getReferrer(),
+            data: PageVisitPayload = {
+                statsId: tempStatsId(),
+                ...statsBasics(logged),
+                event: `pageview`,
+                winW: window?.innerWidth,
+                winH: window?.innerHeight,
+                ...referrer ? { referrer } : {},
+                code: getCountryCode(),
+            };
+        return data
+    },
     /** web analytics (browser) */
     webAnalytics = ({
         logged,
@@ -100,16 +115,7 @@ const
                 lastVisibleTime = tN();
 
             const
-                referrer = getReferrer(),
-                data: PageVisitPayload = {
-                    statsId: tempStatsId(),
-                    ...statsBasics(logged),
-                    event: `pageview`,
-                    winW: window?.innerWidth,
-                    winH: window?.innerHeight,
-                    ...referrer ? { referrer } : {},
-                    code: getCountryCode(),
-                },
+                data = webData(logged),
                 update = (newPage: boolean) => {
                     try {
                         const
@@ -177,6 +183,7 @@ const
 
 export {
     setWebConfig,
+    webData,
     webAnalytics,
     getCountryCode,
 };

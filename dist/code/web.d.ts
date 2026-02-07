@@ -6,9 +6,11 @@ declare const
 setWebConfig: (config: WebConfig) => void, 
 /** Get Country Code */
 getCountryCode: () => CountryCode, 
+/** web data */
+webData: (logged?: boolean) => PageVisitPayload, 
 /** web analytics (browser) */
 webAnalytics: ({ logged, record, }: {
     logged?: boolean;
     record: (data: PageVisitPayload) => any;
 }) => void;
-export { setWebConfig, webAnalytics, getCountryCode, };
+export { setWebConfig, webData, webAnalytics, getCountryCode, };
