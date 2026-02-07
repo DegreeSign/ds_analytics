@@ -1,5 +1,5 @@
-import { IPRange } from "../types";
-import { ipSourceUrl } from "./constants";
+import { IPRange } from "../types/ip";
+import { CountryCode, ipSourceUrl } from "./constants";
 
 const
     ipCountryDataUpdate = async (): Promise<IPRange[]> => await new Promise(async resolve => {
@@ -26,7 +26,7 @@ const
                         startNum = parseInt(start_ip_num),
                         endNum = parseInt(end_ip_num);
                     if (startNum && country) {
-                        ipRanges.push([startNum, endNum, country.trim()]);
+                        ipRanges.push([startNum, endNum, country?.trim() as CountryCode]);
                     };
                 };
             };

@@ -1,5 +1,6 @@
 import { oneDay, oneMin } from "@degreesign/utils";
 import { ipRangeUpdate, ipListReset, ipData } from "./manage";
+import { IPConfig } from "../types/ip";
 
 let
     ipRangeRefresh = setInterval(() => { }, oneDay),
@@ -9,12 +10,7 @@ const
     ipStart = async ({
         ipRangeRefreshInterval = oneDay,
         ipLimitResetInterval = oneMin * 5,
-    }: {
-        /** default is 24 hours */
-        ipRangeRefreshInterval?: number;
-        /** default is 5 mins */
-        ipLimitResetInterval?: number;
-    }) => {
+    }: IPConfig) => {
 
         // fetch ip range
         if (!ipData.ipRange?.length)

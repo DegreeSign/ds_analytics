@@ -1,6 +1,6 @@
-import { seoDt, oneDay, oneMin } from "@degreesign/utils";
+import { seoDt } from "@degreesign/utils";
 import { redJ, wrtJ } from "@degreesign/cache";
-import { IPList, IPData } from "../types";
+import { IPList, IPData } from "../types/ip";
 import { ipArray } from "./analyse";
 import { ipRateLimits } from "./constants";
 import { ipCountryDataUpdate } from "./range";
@@ -24,7 +24,7 @@ const
         try {
             const
                 ipL = ipData.ipList,
-                generalList = ipRateLimits.generalAccess, // general user
+                generalList = ipRateLimits.generalAccess, // general visitor
                 whiteList = ipRateLimits.whiteListed, // white list
                 priorityList = ipRateLimits.priorityAccess; // priority list
 

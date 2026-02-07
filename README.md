@@ -3,21 +3,28 @@
 ## Setup
 Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analytics` 
 
-OR use in browsers through CDN
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@0.0.8/dist/browser/degreesign.min.js"></script>
-```
-
 ```typescript
-    // Start IP Service
-    await ipStart({
-        ipRangeRefreshInterval: oneDay,
-        ipLimitResetInterval: oneMin * 5,
-    });
+import {
+    startService,
+    ipCheck,
+    compare24hr,
+    dateStandard,
+} from '@degreesign/analytics';
 
-    // Check IP against limit
-    ipCheck(requestIPString);
+// Start Service
+await startService({
+    // optional config: ServiceConfig
+});
+
+// Check IP against limit
+ipCheck(requestIPString);
+
+// 24 hours Stats
+const stats24hours = compare24hr();
+
+// Range Stats
+const statsRange = compareStats({
+    startDay: dateStandard(/** time / date */),
+    endDay: dateStandard(/** time / date */),
+});
 ```
-
-## Development In Progress...

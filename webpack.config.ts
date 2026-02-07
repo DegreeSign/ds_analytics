@@ -1,15 +1,11 @@
-import webpack, { Configuration } from 'webpack';
+import webpack from 'webpack';
 import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
 import TerserPlugin from 'terser-webpack-plugin';
 import path from 'path';
 
-// Common configuration
-const commonConfig: Configuration = {
+module.exports = [{
     entry: `./src/index.ts`, // Entry point for your library
-    resolve: {
-        extensions: [`.ts`, `.js`], // Resolve .ts and .js files
-    },
     module: {
         rules: [
             {
@@ -34,25 +30,9 @@ const commonConfig: Configuration = {
         sideEffects: false,       // Mark the project as free of side effects
     },
     mode: `production`,          // Ensure output is optimized
-};
-
-module.exports = [{
-    // Browser configuration
-    ...commonConfig,
-    target: `web`,
-    output: {
-        path: path.resolve(__dirname, `dist/browser`), // Separate output directory
-        filename: `degreesign.min.js`,
-        library: `dsAnalytics`, // Global variable for browsers
-        libraryTarget: `umd`, // UMD for browser
-        globalObject: `this`,
-    },
-}, {
-    // Node.js configuration
-    ...commonConfig,
     target: `node18`,
     resolve: {
-        ...commonConfig.resolve,
+        extensions: [`.ts`, `.js`], // Resolve .ts and .js files
         mainFields: [`module`, `main`],
         conditionNames: [`import`, `default`],
         aliasFields: [],

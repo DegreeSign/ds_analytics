@@ -1,5 +1,5 @@
-import { IPRange } from "../types";
-import { countriesCodes } from "./constants";
+import { IPRange } from "../types/ip";
+import { CountryCode, countriesCodes } from "./constants";
 
 const
     /** IP Num */
@@ -21,10 +21,10 @@ const
         ips,
         ipRange,
     }: {
-        code?: string,
+        code?: CountryCode,
         ips: string,
         ipRange: IPRange[],
-    }): string => {
+    }): CountryCode => {
         try {
             const ipSelected = ipArray(ips)?.find(ip => !ip?.includes(`:`));
             if (ipSelected) {

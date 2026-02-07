@@ -1,7 +1,3 @@
-declare const ipStart: ({ ipRangeRefreshInterval, ipLimitResetInterval, }: {
-    /** default is 24 hours */
-    ipRangeRefreshInterval?: number;
-    /** default is 5 mins */
-    ipLimitResetInterval?: number;
-}) => Promise<void>;
+import { IPConfig } from "../types/ip";
+declare const ipStart: ({ ipRangeRefreshInterval, ipLimitResetInterval, }: IPConfig) => Promise<void>;
 export { ipStart, };
