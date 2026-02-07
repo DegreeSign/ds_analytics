@@ -178,4 +178,5 @@ const
 export {
     setWebConfig,
     webAnalytics,
+    getCountryCode,
 };

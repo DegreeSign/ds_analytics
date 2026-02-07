@@ -1,3 +1,3 @@
-import { setWebConfig, webAnalytics } from "./code/web";
+import { setWebConfig, webAnalytics, getCountryCode } from "./code/web";
 import { WebConfig } from "./types/web";
-export { WebConfig, setWebConfig, webAnalytics, };
+export { WebConfig, setWebConfig, webAnalytics, getCountryCode, };
