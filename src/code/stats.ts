@@ -2,7 +2,6 @@ import {
     getSum,
     getMean,
     rNum,
-    StringObj,
     NumberObjObj,
     NumberObj,
     DateString,
@@ -18,7 +17,6 @@ import {
     wrtJ
 } from "@degreesign/cache";
 import {
-    StatsConfig,
     StatsFreqVisits,
     StatsFreqVisitors,
     DeviceWidthHeight,
@@ -36,18 +34,10 @@ import {
 } from "../types/stats";
 import { IPRange } from "../types/ip";
 import { ipCountryCode } from "./analyse";
-import { CountryCode, countriesCodes } from "./constants";
-
-let
-    trafficDir = `traffic`,
-    thisDomain = ``,
-    excludeURIs: string[] = [],
-    searchEngines: string[] = [],
-    uriAlias: StringObj = {};
+import { CountryCode, StatsConfig, countriesCodes, statsConfig, uriCorrupt } from "./constants";
 
 const
     trafficData: TrafficData = {},
-    uriCorrupt = /[:%\s]|.html/, // checks for : % space or .html
     validURI = (uri: string) => {
         if (
             !uri
@@ -61,7 +51,7 @@ const
     readStats = (date: string) => {
         try {
             if (!trafficData[date])
-                trafficData[date] = redJ(`${trafficDir}${date}.json`, true) || {};
+                trafficData[date] = redJ(`${statsConfig.trafficDir}${date}.json`, true) || {};
             return trafficData[date];
         } catch (e) {
             console.log(seoDt(), `readStats failed`, e);
@@ -74,7 +64,7 @@ const
                 today = dateStandard(new Date()),
                 todayData = readStats(today);
             if (objLen(todayData))
-                wrtJ(`${trafficDir}${today}.json`, todayData);
+                wrtJ(`${statsConfig.trafficDir}${today}.json`, todayData);
         } catch (e) { console.log(seoDt(), `saveStats failed`, e); };
     },
     recordStats = ({
@@ -139,7 +129,7 @@ const
                 });
             }
         } catch (e) {
-            console.log(`recordStats failed`, e);
+            console.log(seoDt(), `recordStats failed`, e);
         };
     },
     combineStats = (days: string[]) => {
@@ -191,7 +181,7 @@ const
             return dateReqStrArray
 
         } catch (e) {
-            console.log(`compareDateStrings failed`, startDay, endDay, e)
+            console.log(seoDt(), `compareDateStrings failed`, startDay, endDay, e)
         };
     },
     compareStats = ({
@@ -210,7 +200,7 @@ const
                 dayData: combineStats(dateReqStr?.split(`,`)),
             }));
         } catch (e) {
-            console.log(`compareStats failed`, startDay, endDay, e)
+            console.log(seoDt(), `compareStats failed`, startDay, endDay, e)
         };
     },
     compare24hr = (): (StatsAnalysisResult | undefined)[] | undefined => {
@@ -260,13 +250,13 @@ const
             ];
 
         } catch (e) {
-            console.log(`compare24hr failed`, e)
+            console.log(seoDt(), `compare24hr failed`, e)
         };
     },
     getURIAlias = (uri: string) => {
-        for (const check in uriAlias)
+        for (const check in statsConfig.uriAlias)
             if (uri?.includes(check))
-                return uriAlias[check];
+                return statsConfig.uriAlias[check];
         return uri
     },
     getPeriodStr = ({
@@ -365,7 +355,7 @@ const
                     screenSize = `${firstVisit.winW}x${firstVisit.winH} (${device})`,
                     source = data.find(([, visits]) => visits.find(p =>
                         p.referrer
-                        && (!thisDomain || !p.referrer?.includes(thisDomain))
+                        && (!statsConfig.thisDomain || !p.referrer?.includes(statsConfig.thisDomain))
                     ))?.[1]?.[0]?.referrer,
                     country = (
                         data.find(([, visits]) => visits.find(p => p.code))
@@ -413,7 +403,7 @@ const
                     return `${rNum(data.days, 0)} days | ${data.hasAccount ? `user` : `visitor`} | ${data.country} > ${data.screenSize} > ${source} > ${data.pages?.join(`,`)}`
                 })
         } catch (e) {
-            console.log(`freqVisits failed`, e);
+            console.log(seoDt(), `freqVisits failed`, e);
         };
         return []
     },
@@ -466,8 +456,8 @@ const
             for (const uri in dayData) {
 
                 if (
-                    excludeURIs?.length
-                    && excludeURIs?.find(page => uri?.includes(page))
+                    statsConfig.excludeURIs?.length
+                    && statsConfig.excludeURIs?.find(page => uri?.includes(page))
                 ) continue;
 
                 const visits = dayData[uri];
@@ -603,14 +593,14 @@ const
                     // referral
                     const referrer = visitData.referrer;
                     if (
-                        searchEngines?.length
-                        && searchEngines.find(search => referrer?.includes(search))
+                        statsConfig.searchEngines?.length
+                        && statsConfig.searchEngines.find(search => referrer?.includes(search))
                     ) {
                         searchRefValue += 1;
                         searchRef += 1;
                     } else if (
-                        thisDomain
-                        && referrer?.includes(thisDomain)
+                        statsConfig.thisDomain
+                        && referrer?.includes(statsConfig.thisDomain)
                     ) {
                         thisDomainRefValue += 1;
                         thisDomainRef += 1;
@@ -773,24 +763,29 @@ const
                 } : {},
             };
         } catch (e) {
-            console.log(`analyseStats failed`, dateReqStr, e);
+            console.log(seoDt(), `analyseStats failed`, dateReqStr, e);
         };
     },
     /** Config Stats */
     configStats = (config: StatsConfig) => {
-        trafficDir = config.trafficDir || trafficDir;
-        thisDomain = config.thisDomain || ``;
-        excludeURIs = config.excludeURIs || [];
-        searchEngines = config.searchEngines || [];
-        uriAlias = config.uriAlias || {};
+        statsConfig.trafficDir = config.trafficDir || statsConfig.trafficDir;
+        statsConfig.thisDomain = config.thisDomain || ``;
+        statsConfig.excludeURIs = config.excludeURIs || [];
+        statsConfig.searchEngines = config.searchEngines || [];
+        statsConfig.uriAlias = config.uriAlias || {};
     },
     /** Start Stats */
     startStats = () => {
-        safeFolder(trafficDir);
-        setInterval(saveStats, oneSec * 15);
+        try {
+            safeFolder(statsConfig.trafficDir || ``);
+            setInterval(saveStats, oneSec * 15);
+        } catch (e) {
+            console.log(seoDt(), `startStats failed`, e);
+        };
     };
 
 export {
+    statsConfig,
     configStats,
     statsPeriodStr,
     statsAddOne,

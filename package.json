@@ -1,8 +1,9 @@
 {
   "name": "@degreesign/analytics",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/node/degreesign.node.min.js",
   "module": "dist/node/degreesign.node.min.js",
+  "browser": "dist/browser/degreesign.min.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "webpack"
@@ -33,14 +34,14 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
-    "webpack": "^5.97.1",
-    "webpack-bundle-analyzer": "^4.10.2",
+    "webpack": "^5.105.0",
+    "webpack-bundle-analyzer": "^5.2.0",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.0"
+    "webpack-dev-server": "^5.2.3"
   },
   "dependencies": {
-    "@degreesign/cache": "^0.0.2",
-    "@degreesign/utils": "^1.0.1"
+    "@degreesign/cache": "^0.0.7",
+    "@degreesign/utils": "^1.0.2"
   },
   "files": [
     "dist/"

@@ -1,4 +1,4 @@
-import { NumberObj, StringObj } from "@degreesign/utils";
+import { NumberObj } from "@degreesign/utils";
 import { CountryCode } from "../code/constants";
 declare enum StatsDevice {
     mobile = "mobile",
@@ -122,16 +122,4 @@ interface StatsFreqVisits {
         [page: string]: PageVisitRecord[];
     };
 }
-interface StatsConfig {
-    /** Traffic Server Directory `traffic` */
-    trafficDir?: string;
-    /** Domain Name `example.com` */
-    thisDomain?: string;
-    /** Excluded URI [`admin`] */
-    excludeURIs?: string[];
-    /** Search Engines [`google`] */
-    searchEngines?: string[];
-    /** URI Alias { home: `HomePage` } */
-    uriAlias?: StringObj;
-}
-export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsPublicChange, StatsDevice, PageDeviceDimensions, DeviceWidthHeight, StatsConfig, };
+export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsPublicChange, StatsDevice, PageDeviceDimensions, DeviceWidthHeight, };

@@ -1,4 +1,4 @@
-import { NumberObj, StringObj } from "@degreesign/utils";
+import { NumberObj } from "@degreesign/utils";
 import { CountryCode } from "../code/constants";
 
 enum StatsDevice {
@@ -147,19 +147,6 @@ interface StatsFreqVisits {
     }
 }
 
-interface StatsConfig {
-    /** Traffic Server Directory `traffic` */
-    trafficDir?: string;
-    /** Domain Name `example.com` */
-    thisDomain?: string;
-    /** Excluded URI [`admin`] */
-    excludeURIs?: string[];
-    /** Search Engines [`google`] */
-    searchEngines?: string[];
-    /** URI Alias { home: `HomePage` } */
-    uriAlias?: StringObj;
-}
-
 export {
     PageVisitInitiation,
     PageVisitRecord,
@@ -181,5 +168,4 @@ export {
     StatsDevice,
     PageDeviceDimensions,
     DeviceWidthHeight,
-    StatsConfig,
 }

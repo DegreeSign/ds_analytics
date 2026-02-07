@@ -1,3 +1,4 @@
+import { seoDt } from "@degreesign/utils";
 import { IPRange } from "../types/ip";
 import { CountryCode, countriesCodes } from "./constants";
 
@@ -35,8 +36,8 @@ const
                         break;
                     };
             };
-        } catch (error) {
-            console.error(`ipCountryCode failed`, error);
+        } catch (e) {
+            console.log(seoDt(), `ipCountryCode failed`, e);
         };
         return code && countriesCodes[code] ? code : `UN`
     };

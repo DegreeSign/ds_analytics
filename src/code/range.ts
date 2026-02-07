@@ -1,3 +1,4 @@
+import { seoDt } from "@degreesign/utils";
 import { IPRange } from "../types/ip";
 import { CountryCode, ipSourceUrl } from "./constants";
 
@@ -32,11 +33,11 @@ const
             };
 
             if (!ipRanges?.length)
-                console.log(`ipCountryDataUpdate no data`);
+                console.log(seoDt(), `ipCountryDataUpdate no data`);
             else resolve(ipRanges);
 
         } catch (e) {
-            console.log(`ipCountryDataUpdate failed`, e);
+            console.log(seoDt(), `ipCountryDataUpdate failed`, e);
             resolve([]);
         };
     });

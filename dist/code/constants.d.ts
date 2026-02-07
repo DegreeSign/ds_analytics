@@ -1,3 +1,5 @@
+import { StringObj } from "@degreesign/utils";
+import { WebConfig } from "../types/web";
 /** IP Rate limits */
 interface RateLimits {
     /** general visitor */
@@ -6,6 +8,18 @@ interface RateLimits {
     whiteListed: number;
     /** paid list */
     priorityAccess: number;
+}
+interface StatsConfig {
+    /** Traffic Server Directory `traffic` */
+    trafficDir?: string;
+    /** Domain Name `example.com` */
+    thisDomain?: string;
+    /** Excluded URI [`admin`] */
+    excludeURIs?: string[];
+    /** Search Engines [`google`] */
+    searchEngines?: string[];
+    /** URI Alias { home: `HomePage` } */
+    uriAlias?: StringObj;
 }
 declare const 
 /** IP range source */
@@ -265,6 +279,7 @@ countriesCodes: {
     readonly UN: 1;
 }, 
 /** IP rate limits */
-ipRateLimits: RateLimits;
+ipRateLimits: RateLimits, checkInterval = 5000, uriCorrupt: RegExp, // checks for : % space or .html
+statsConfig: StatsConfig, webConfig: WebConfig;
 type CountryCode = keyof typeof countriesCodes;
-export { ipSourceUrl, CountryCode, countriesCodes, RateLimits, ipRateLimits, };
+export { ipSourceUrl, CountryCode, countriesCodes, RateLimits, ipRateLimits, checkInterval, StatsConfig, uriCorrupt, statsConfig, webConfig, };

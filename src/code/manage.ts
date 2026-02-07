@@ -1,5 +1,5 @@
 import { seoDt } from "@degreesign/utils";
-import { redJ, wrtJ } from "@degreesign/cache";
+import { wrtJ } from "@degreesign/cache";
 import { IPList, IPData } from "../types/ip";
 import { ipArray } from "./analyse";
 import { ipRateLimits } from "./constants";
@@ -71,7 +71,7 @@ const
     },
     ipData: IPData = {
         ipList: ipResetLimits(),
-        ipRange: redJ(`ip_range.json`, true) || [],
+        ipRange: [],
     },
     ipRangeUpdate = async () => {
         try {
