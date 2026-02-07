@@ -59,7 +59,7 @@ webAnalytics({
 ## Browser CDN Implementation (Submission)
 ```html
 <script 
-    src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.0.5/dist/browser/degreesign.min.js"
+    src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.0.6/dist/browser/degreesign.min.js"
 ></script>
 
 <script>

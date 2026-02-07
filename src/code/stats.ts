@@ -522,14 +522,18 @@ const
                     start = timeStart + msInterval * i,
                     startTimeIndex = timestampList.findIndex(t => t >= start),
                     end = timeStart + msInterval * (i + 1),
-                    endTimeIndex = timestampList.findIndex(t => t >= end);
+                    endTimeIndexRaw = timestampList.findIndex(t => t >= end),
+                    endTimeIndex = endTimeIndexRaw == -1
+                        && startTimeIndex != -1 ?
+                        (timestampList.length - 1)
+                        : endTimeIndexRaw;
                 chartVisits[i] = chartVisits[i] || 0;
                 chartVisitors[i] = chartVisitors[i] || 0;
                 for (let t = startTimeIndex; t <= endTimeIndex; t++) {
                     const
                         timestamp = timestampList[t],
                         visits = timeVisits[timestamp];
-                    chartVisits[i] += visits;
+                    chartVisits[i] += visits || 0;
                     chartVisitors[i] += objLen(timeVisitors[timestamp]);
                 };
             };
