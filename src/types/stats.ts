@@ -130,8 +130,6 @@ interface StatsReqParams {
     calcFreqVisits?: boolean;
 }
 
-type StatsPublicChange = [string, number];
-
 interface StatsFreqVisitors {
     days: number;
     hasAccount: boolean;
@@ -164,7 +162,6 @@ export {
     StatsReqParams,
     StatsDeviceType,
     StatsDeviceObj,
-    StatsPublicChange,
     StatsDevice,
     PageDeviceDimensions,
     DeviceWidthHeight,

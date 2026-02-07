@@ -108,7 +108,6 @@ interface StatsReqParams {
     updateStartTime?: boolean;
     calcFreqVisits?: boolean;
 }
-type StatsPublicChange = [string, number];
 interface StatsFreqVisitors {
     days: number;
     hasAccount: boolean;
@@ -122,4 +121,4 @@ interface StatsFreqVisits {
         [page: string]: PageVisitRecord[];
     };
 }
-export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsPublicChange, StatsDevice, PageDeviceDimensions, DeviceWidthHeight, };
+export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsDevice, PageDeviceDimensions, DeviceWidthHeight, };

@@ -5,7 +5,7 @@ import { ipCheck, ipWhiteList, ipPriorityList, ipResetLimits, ipData, ipRangeUpd
 import { configStats, statsPeriodStr, statsAddOne, formatVisits, analyseStats, recordStats, startStats, compareDateStrings, combineStats, compare24hr, compareStats } from "./code/stats";
 import { ipStart } from "./code/update";
 import { IPCountryRange, IPData, IPList, IPRange } from "./types/ip";
-import { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsPublicChange, StatsDevice, PageDeviceDimensions, DeviceWidthHeight } from "./types/stats";
+import { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsDevice, PageDeviceDimensions, DeviceWidthHeight } from "./types/stats";
 import { startAnalyticsServer } from "./code/start";
 import { ServiceConfig } from "./types/general";
 import { WebConfig, getCountryCode, setWebConfig, webAnalytics, webData } from "./browser";
@@ -56,7 +56,6 @@ export {
     StatsReqParams,
     StatsDeviceType,
     StatsDeviceObj,
-    StatsPublicChange,
     StatsDevice,
     PageDeviceDimensions,
     DeviceWidthHeight,
