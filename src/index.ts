@@ -6,7 +6,7 @@ import { configStats, statsPeriodStr, statsAddOne, formatVisits, analyseStats, r
 import { ipStart } from "./code/update";
 import { IPCountryRange, IPData, IPList, IPRange } from "./types/ip";
 import { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsPublicChange, StatsDevice, PageDeviceDimensions, DeviceWidthHeight, StatsConfig } from "./types/stats";
-import { startService } from "./code/start";
+import { startAnalytics } from "./code/start";
 import { ServiceConfig } from "./types/general";
 
 export {
@@ -63,5 +63,5 @@ export {
     CountryCode,
     dateStandard,
     ServiceConfig,
-    startService,
+    startAnalytics,
 }

@@ -5,14 +5,14 @@ Install using `yarn add @degreesign/analytics` or `npm install @degreesign/analy
 
 ```typescript
 import {
-    startService,
+    startAnalytics,
     ipCheck,
     compare24hr,
     dateStandard,
 } from '@degreesign/analytics';
 
 // Start Service
-await startService({
+await startAnalytics({
     // optional config: ServiceConfig
 });
 

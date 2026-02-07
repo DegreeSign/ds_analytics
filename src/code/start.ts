@@ -2,7 +2,7 @@ import { ServiceConfig } from "../types/general";
 import { configStats, startStats } from "./stats";
 import { ipStart } from "./update";
 
-const startService = async (config: ServiceConfig) => {
+const startAnalytics = async (config: ServiceConfig) => {
 
     // Start IP Service
     await ipStart(config);
@@ -15,5 +15,5 @@ const startService = async (config: ServiceConfig) => {
 };
 
 export {
-    startService,
+    startAnalytics,
 }
