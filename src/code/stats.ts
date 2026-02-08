@@ -187,9 +187,11 @@ const
     compareStats = ({
         startDay,
         endDay,
+        includeRaw,
     }: {
-        startDay: DateString,
-        endDay?: DateString,
+        startDay: DateString;
+        endDay?: DateString;
+        includeRaw?: boolean;
     }): (StatsAnalysisResult | undefined)[] | undefined => {
         try {
             return compareDateStrings({
@@ -198,12 +200,15 @@ const
             })?.map((dateReqStr) => analyseStats({
                 dateReqStr,
                 dayData: combineStats(dateReqStr?.split(`,`)),
+                includeRaw,
             }));
         } catch (e) {
             console.log(seoDt(), `compareStats failed`, startDay, endDay, e)
         };
     },
-    compare24hr = (): (StatsAnalysisResult | undefined)[] | undefined => {
+    compare24hr = (
+        includeRaw = false
+    ): (StatsAnalysisResult | undefined)[] | undefined => {
 
         try {
 
@@ -240,12 +245,14 @@ const
                     dayData: trafficToday,
                     resolution: 48, // every 30 mins
                     updateStartTime: true,
+                    includeRaw,
                 }),
                 analyseStats({
                     dateReqStr: yesterdayDate,
                     dayData: trafficYesterday,
                     resolution: 48, // every 30 mins
                     updateStartTime: true,
+                    includeRaw,
                 })
             ];
 
@@ -418,6 +425,7 @@ const
         resolution,
         updateStartTime,
         calcFreqVisits,
+        includeRaw,
     }: StatsReqParams): StatsAnalysisResult | undefined => {
 
         try {
@@ -759,12 +767,12 @@ const
                 devices: deviceVisitsArray,
                 chartVisits,
                 chartVisitors,
-                dayDataFiltered,
                 visitors: totalVisitors,
                 spamVisitors,
                 ...calcFreqVisits ? {
                     freqVisits: freqVisits({ visitorsCount, freqVisitors }),
                 } : {},
+                ...!includeRaw ? {} : { dayDataFiltered },
             };
         } catch (e) {
             console.log(seoDt(), `analyseStats failed`, dateReqStr, e);

@@ -91,10 +91,11 @@ interface StatsAnalysisResult {
     devices: VisitorVisitsType[];
     chartVisits: number[];
     chartVisitors: number[];
-    dayDataFiltered: TrafficDataDay;
     visitors: number;
     spamVisitors: NumberObj;
     freqVisits?: string[];
+    /** Raw Data */
+    dayDataFiltered?: TrafficDataDay;
 }
 interface StatsReqParams {
     dayData: TrafficDataDay;
@@ -107,6 +108,7 @@ interface StatsReqParams {
     resolution?: number;
     updateStartTime?: boolean;
     calcFreqVisits?: boolean;
+    includeRaw?: boolean;
 }
 interface StatsFreqVisitors {
     days: number;

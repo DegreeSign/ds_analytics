@@ -9,10 +9,11 @@ declare const recordStats: ({ ipRange, ips, data }: {
 }) => void, combineStats: (days: string[]) => TrafficDataDay, compareDateStrings: ({ startDay, endDay, }: {
     startDay: DateString;
     endDay?: DateString;
-}) => string[] | undefined, compareStats: ({ startDay, endDay, }: {
+}) => string[] | undefined, compareStats: ({ startDay, endDay, includeRaw, }: {
     startDay: DateString;
     endDay?: DateString;
-}) => (StatsAnalysisResult | undefined)[] | undefined, compare24hr: () => (StatsAnalysisResult | undefined)[] | undefined, statsPeriodStr: ({ days, endTime, }: {
+    includeRaw?: boolean;
+}) => (StatsAnalysisResult | undefined)[] | undefined, compare24hr: (includeRaw?: boolean) => (StatsAnalysisResult | undefined)[] | undefined, statsPeriodStr: ({ days, endTime, }: {
     days: number;
     endTime?: number;
 }) => {
@@ -26,7 +27,7 @@ declare const recordStats: ({ ipRange, ips, data }: {
 }) => void, formatVisits: ({ visitors, visits, }: {
     visitors: NumberObjObj;
     visits: NumberObj;
-}) => VisitorVisitsType[], analyseStats: ({ dayData, dateReqStr, spamVisitorLimit, spamVisitsLimit, bounceSecondsLimit, visitMinSeconds, visitCutOffSeconds, resolution, updateStartTime, calcFreqVisits, }: StatsReqParams) => StatsAnalysisResult | undefined, 
+}) => VisitorVisitsType[], analyseStats: ({ dayData, dateReqStr, spamVisitorLimit, spamVisitsLimit, bounceSecondsLimit, visitMinSeconds, visitCutOffSeconds, resolution, updateStartTime, calcFreqVisits, includeRaw, }: StatsReqParams) => StatsAnalysisResult | undefined, 
 /** Config Stats */
 configStats: (config: StatsConfig) => void, 
 /** Start Stats */
