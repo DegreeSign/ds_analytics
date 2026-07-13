@@ -706,8 +706,8 @@ const
                 };
 
                 // all width
-                mobileWidthAll.push(...mobilePageDim);
-                desktopWidthAll.push(...desktopPageDim);
+                for (const item of mobilePageDim) mobileWidthAll.push(item);
+                for (const item of desktopPageDim) desktopWidthAll.push(item);
             };
 
             const
