@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 1.1.2
+
+- `StatsDevice` and `StatsEventType` now exported from the browser bundle.
+
 ## 1.1.1
 
 - Removed the `durArray` field from `PageTrafficData` and `PageTrafficDataFinal`.
