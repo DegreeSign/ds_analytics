@@ -1,5 +1,5 @@
-import { NumberObj, NumberObjObj } from "@degreesign/utils";
-import { CountryCode } from "../code/constants";
+import { NumberObj, NumberObjObj, StringObj } from "@degreesign/utils";
+import { CountryCode } from "./country";
 
 enum StatsDevice {
     mobile = `mobile`,
@@ -16,6 +16,19 @@ type DeviceWidthHeight = [number, number];
 
 interface PageDeviceDimensions {
     [pageName: string]: DeviceWidthHeight[];
+}
+
+/** running sums for device dimension mean (avoids storing every dim) */
+interface DimAccumulator {
+    sumW: number,
+    sumH: number,
+    count: number,
+}
+
+/** running sums for filtered visit duration mean (avoids storing every duration) */
+interface DurMeanAccumulator {
+    sum: number,
+    count: number,
 }
 
 interface PageVisitBasics {
@@ -107,8 +120,6 @@ interface PageTrafficDataBasics {
 }
 
 interface PageTrafficData extends PageTrafficDataBasics {
-    /** time array (seconds) */
-    durArray: number[],
 }
 
 interface PageTrafficDataFinal extends PageTrafficDataBasics {
@@ -116,8 +127,6 @@ interface PageTrafficDataFinal extends PageTrafficDataBasics {
     durMean: number,
     /** Counted visits */
     verifiedVisits: number,
-    /** to be deleted in processing */
-    durArray?: number[],
 }
 
 interface PageTrafficDataObj {
@@ -206,6 +215,19 @@ interface StatsFreqVisits {
     }
 }
 
+interface StatsConfig {
+    /** Traffic Server Directory `traffic` */
+    trafficDir?: string;
+    /** Domain Name `example.com` */
+    thisDomain?: string;
+    /** Excluded URI [`admin`] */
+    excludeURIs?: string[];
+    /** Search Engines [`google`] */
+    searchEngines?: string[];
+    /** URI Alias { home: `HomePage` } */
+    uriAlias?: StringObj;
+}
+
 export {
     PageVisitInitiation,
     PageVisitRecord,
@@ -233,4 +255,7 @@ export {
     StatsTagMetricSets,
     PageDeviceDimensions,
     DeviceWidthHeight,
+    DimAccumulator,
+    DurMeanAccumulator,
+    StatsConfig,
 }

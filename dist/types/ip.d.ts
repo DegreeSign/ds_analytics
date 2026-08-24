@@ -1,5 +1,5 @@
 import { NumberObj } from "@degreesign/utils";
-import { CountryCode } from "../code/constants";
+import { CountryCode } from "./country";
 /** IPs list */
 interface IPList {
     /**  ip pro list + counter */
@@ -31,4 +31,13 @@ interface IPConfig {
     /** default is 5 mins */
     ipLimitResetInterval?: number;
 }
-export { IPList, IPCountryRange, IPRange, IPData, IPConfig, };
+/** IP Rate limits */
+interface RateLimits {
+    /** general visitor */
+    generalAccess: number;
+    /** white list */
+    whiteListed: number;
+    /** paid list */
+    priorityAccess: number;
+}
+export { IPList, IPCountryRange, IPRange, IPData, IPConfig, RateLimits, };

@@ -1,6 +1,4 @@
 import {
-    getSum,
-    getMean,
     rNum,
     NumberObjObj,
     NumberObj,
@@ -20,7 +18,6 @@ import {
     StatsFreqVisits,
     StatsFreqVisitors,
     DeviceWidthHeight,
-    PageDeviceDimensions,
     PageTrafficDataFinal,
     PageTrafficDataObj,
     StatsDevice,
@@ -36,13 +33,22 @@ import {
     StatsTagMetricSets,
     TrafficData,
     TrafficDataDay,
+    DimAccumulator,
+    DurMeanAccumulator,
+    StatsConfig,
 } from "../types/stats";
 import { IPRange } from "../types/ip";
 import { ipCountryCode } from "./analyse";
-import { CountryCode, StatsConfig, countriesCodes, statsConfig, uriCorrupt, unknownCountryCode } from "./constants";
+import { CountryCode, countriesCodes, statsConfig, trafficDataCacheTtl, uriCorrupt, unknownCountryCode } from "./constants";
 
 const
     trafficData: TrafficData = {},
+    trafficDataRead: NumberObj = {},
+    sessionIndex: {
+        [date: string]: {
+            [uri: string]: Map<string, number>
+        }
+    } = {},
     validURI = (uri: string) => {
         if (
             !uri
@@ -57,6 +63,7 @@ const
         try {
             if (!trafficData[date])
                 trafficData[date] = redJ(`${statsConfig.trafficDir}${date}.json`, true) || {};
+            trafficDataRead[date] = Date.now();
             return trafficData[date];
         } catch (e) {
             console.log(seoDt(), `readStats failed`, e);
@@ -70,7 +77,32 @@ const
                 todayData = readStats(today);
             if (objLen(todayData))
                 wrtJ(`${statsConfig.trafficDir}${today}.json`, todayData);
+
+            // evict stale cached days to avoid unbounded memory
+            for (const date in trafficData) {
+                if (
+                    date != today
+                    && Date.now() - (trafficDataRead[date] || 0) > trafficDataCacheTtl
+                ) {
+                    delete trafficData[date];
+                    delete trafficDataRead[date];
+                    delete sessionIndex[date];
+                };
+            };
         } catch (e) { console.log(seoDt(), `saveStats failed`, e); };
+    },
+    getSessionIndex = (date: string, uri: string, visits: PageVisitRecord[]) => {
+        let dateIndex = sessionIndex[date];
+        if (!dateIndex) dateIndex = sessionIndex[date] = {};
+        if (!dateIndex[uri]) {
+            const map = new Map<string, number>();
+            for (let i = 0; i < visits.length; i++) {
+                const session = visits[i].session;
+                if (!map.has(session)) map.set(session, i);
+            };
+            dateIndex[uri] = map;
+        };
+        return dateIndex[uri];
     },
     recordStats = ({
         ipRange,
@@ -102,9 +134,9 @@ const
             // update data
             const
                 visits = trafficData[uri],
-                visitIndex = dur && visits?.length ?
-                    visits?.findIndex(visit => visit.session == session)
-                    : undefined;
+                uriIndex = getSessionIndex(today, uri, visits),
+                visitIndex = dur ? uriIndex.get(session) : undefined;
+
             if (
                 visitIndex != undefined
                 && visits[visitIndex]
@@ -133,6 +165,8 @@ const
                     dur,
                     tag: data.tag,
                 });
+                if (!uriIndex.has(session))
+                    uriIndex.set(session, visits.length - 1);
             }
         } catch (e) {
             console.log(seoDt(), `recordStats failed`, e);
@@ -143,12 +177,12 @@ const
         for (let i = 0; i < days.length; i++) {
             const d = readStats(days[i]);
             if (objLen(d))
-                for (const p in d)
-                    traffic[p] = (
-                        traffic[p] || []
-                    ).concat(
-                        d[p] || []
-                    );
+                for (const p in d) {
+                    if (!traffic[p]) traffic[p] = [];
+                    const src = d[p] || [];
+                    for (let j = 0; j < src.length; j++)
+                        traffic[p].push(src[j]);
+                };
         };
         return traffic
     },
@@ -224,24 +258,27 @@ const
                 yesterdayCutOff = todayCutOff - oneDay,
                 yesterdayDate = dateStandard(yesterdayCutOff),
                 prvCutOff = todayCutOff - (oneDay * 2),
-                traffic = combineStats([
-                    todayDate, // today
-                    yesterdayDate, // yesterday
-                    dateStandard(prvCutOff), // preceding day
-                ]),
                 trafficToday: TrafficDataDay = {},
                 trafficYesterday: TrafficDataDay = {};
 
-            for (const page in traffic) {
-                const visits = traffic[page];
-                for (let i = 0; i < visits.length; i++) {
-                    const visit = visits[i];
-                    if (visit.timestamp > yesterdayCutOff) {
-                        if (!trafficToday[page]) trafficToday[page] = [];
-                        trafficToday[page].push(visit);
-                    } else if (visit.timestamp > prvCutOff) {
-                        if (!trafficYesterday[page]) trafficYesterday[page] = [];
-                        trafficYesterday[page].push(visit);
+            // bucket visits directly from each day (no merged intermediate)
+            for (const date of [
+                todayDate, // today
+                yesterdayDate, // yesterday
+                dateStandard(prvCutOff), // preceding day
+            ]) {
+                const day = readStats(date);
+                for (const page in day) {
+                    const visits = day[page];
+                    for (let i = 0; i < visits.length; i++) {
+                        const visit = visits[i];
+                        if (visit.timestamp > yesterdayCutOff) {
+                            if (!trafficToday[page]) trafficToday[page] = [];
+                            trafficToday[page].push(visit);
+                        } else if (visit.timestamp > prvCutOff) {
+                            if (!trafficYesterday[page]) trafficYesterday[page] = [];
+                            trafficYesterday[page].push(visit);
+                        };
                     };
                 };
             };
@@ -437,30 +474,33 @@ const
             msInterval = (days?.length * oneDay) / resolution,
             timestampList = Object.keys(timeVisits)
                 ?.map(n => +n)
-                ?.sort((a, b) => a > b ? 1 : -1),
+                ?.sort((a, b) => a - b),
             timeStart = updateStartTime ? timestampList[0]
                 : new Date(days[days.length - 1]).getTime(),
             chartVisits: number[] = [],
-            chartVisitors: number[] = [];
+            chartVisitors: number[] = [],
+            visitorCounts: NumberObj = {};
 
+        // precompute unique visitors per timestamp (avoids Object.keys in the bucket loop)
+        for (let i = 0; i < timestampList.length; i++)
+            visitorCounts[timestampList[i]] = objLen(timeVisitors[timestampList[i]]);
+
+        // single monotonic scan over sorted timestamps (buckets are [start, end))
+        let t = 0;
         for (let i = 0; i < resolution; i++) {
             const
                 start = timeStart + msInterval * i,
-                startTimeIndex = timestampList.findIndex(t => t >= start),
-                end = timeStart + msInterval * (i + 1),
-                endTimeIndexRaw = timestampList.findIndex(t => t >= end),
-                endTimeIndex = endTimeIndexRaw == -1
-                    && startTimeIndex != -1 ?
-                    (timestampList.length - 1)
-                    : endTimeIndexRaw;
+                isLast = i == resolution - 1,
+                end = isLast ? Infinity : start + msInterval;
             chartVisits[i] = chartVisits[i] || 0;
             chartVisitors[i] = chartVisitors[i] || 0;
-            for (let t = startTimeIndex; t <= endTimeIndex; t++) {
-                const
-                    timestamp = timestampList[t],
-                    visits = timeVisits[timestamp];
-                chartVisits[i] += visits || 0;
-                chartVisitors[i] += objLen(timeVisitors[timestamp]);
+            while (t < timestampList.length && timestampList[t] < end) {
+                if (timestampList[t] >= start) {
+                    const timestamp = timestampList[t];
+                    chartVisits[i] += timeVisits[timestamp] || 0;
+                    chartVisitors[i] += visitorCounts[timestamp];
+                };
+                t++;
             };
         };
         return { chartVisits, chartVisitors }
@@ -588,10 +628,12 @@ const
                 thisDomainRef = 0,
                 otherRef = 0,
                 totalVisits = 0,
-                totalVisitsBounced = 0;
+                totalVisitsBounced = 0,
+                totalDurSum = 0,
+                totalDurMeanSum = 0,
+                totalDurMeanCount = 0;
 
             const
-                totalDur: number[] = [],
                 visitorsCount: NumberObj = {},
                 freqVisitors: StatsFreqVisits = {},
                 countriesVisits: NumberObj = {},
@@ -608,14 +650,27 @@ const
                 dayDataFiltered: TrafficDataDay = {},
                 spamVisitors: NumberObj = {},
                 spamTimestamps: NumberObj = {},
-                mobileDim: PageDeviceDimensions = {},
-                desktopDim: PageDeviceDimensions = {},
+                dimAccumulator = (): DimAccumulator => ({ sumW: 0, sumH: 0, count: 0 }),
+                durMeanAccumulator = (): DurMeanAccumulator => ({ sum: 0, count: 0 }),
+                mobileDimAccum: { [pageName: string]: DimAccumulator } = {},
+                desktopDimAccum: { [pageName: string]: DimAccumulator } = {},
+                durMeanAccum: { [pageName: string]: DurMeanAccumulator } = {},
+                mobileAllAcc = dimAccumulator(),
+                desktopAllAcc = dimAccumulator(),
+                dimMean = (acc?: DimAccumulator): DeviceWidthHeight =>
+                    acc?.count
+                        ? [
+                            Math.round((acc.sumW / acc.count) / 10) * 10,
+                            Math.round((acc.sumH / acc.count) / 10) * 10,
+                        ]
+                        : [0, 0],
                 dataObj: PageTrafficDataObj = {},
                 clicksAccumulator = tagAccumulator(),
                 inviewsAccumulator = tagAccumulator(),
                 allTimeVisits: NumberObj = {},
                 allTimeVisitors: NumberObjObj = {};
 
+            // build all-time counts (for spam detection)
             for (const uri in dayData) {
 
                 if (
@@ -637,12 +692,6 @@ const
                     if (!allTimeVisitors[timestamp]) allTimeVisitors[timestamp] = {};
                     allTimeVisitors[timestamp][visitData.statsId] =
                         (allTimeVisitors[timestamp]?.[visitData.statsId] || 0) + 1;
-                    if (visitData.event != StatsEventType.pageview) continue;
-                    timeVisits[timestamp] =
-                        (timeVisits[timestamp] || 0) + 1;
-                    if (!timeVisitors[timestamp]) timeVisitors[timestamp] = {};
-                    timeVisitors[timestamp][visitData.statsId] =
-                        (timeVisitors[timestamp]?.[visitData.statsId] || 0) + 1;
                 };
             };
 
@@ -667,21 +716,6 @@ const
                 };
             };
 
-            // exclude spam from chart data
-            for (const timestamp in timeVisits) {
-                const visitors = timeVisitors[timestamp];
-                if (spamTimestamps[timestamp]) {
-                    delete timeVisits[timestamp];
-                    delete timeVisitors[timestamp];
-                    continue;
-                };
-                for (const visitId in visitors) {
-                    if (!spamVisitors[visitId]) continue;
-                    timeVisits[timestamp] -= visitors[visitId];
-                    delete visitors[visitId];
-                };
-            };
-
             // chart
             const
                 days = dateReqStr?.split(`,`),
@@ -693,15 +727,6 @@ const
                         : daysCount
             );
 
-            const
-                { chartVisits, chartVisitors } = chartSeries({
-                    timeVisits,
-                    timeVisitors,
-                    resolution,
-                    days,
-                    updateStartTime,
-                });
-
             // process pages
             for (const uri in dayDataTarget) {
 
@@ -712,34 +737,48 @@ const
                     thisDomainRefValue = 0,
                     otherRefV = 0,
                     mobileVisits = 0,
-                    desktopVisits = 0;
+                    desktopVisits = 0,
+                    uriDurSum = 0,
+                    uriDurMeanSum = 0,
+                    uriDurMeanCount = 0;
 
                 const
-                    durV: number[] = [],
                     pageName = uri == `/` ? `Home`
                         : getURIAlias(uri),
-                    visits = dayDataTarget[uri],
-                    visitsFiltered = visits.filter(v => !(
-                        spamVisitors[v.statsId]
-                        || spamTimestamps[v.timestamp]
-                    ));
+                    visits = dayDataTarget[uri];
 
-                dayDataFiltered[uri] = visitsFiltered;
-
-                if (!mobileDim[pageName]?.length) mobileDim[pageName] = [];
-                if (!desktopDim[pageName]?.length) desktopDim[pageName] = [];
                 if (!pageVisitors[pageName]) pageVisitors[pageName] = {};
 
                 // process page visits
-                for (let i = 0; i < visitsFiltered.length; i++) {
+                for (let i = 0; i < visits.length; i++) {
 
                     const
-                        visitData = visitsFiltered[i],
-                        visitId = visitData.statsId,
+                        visitData = visits[i],
+                        timestamp = visitData.timestamp,
+                        visitId = visitData.statsId;
+
+                    if (!visitId) continue;
+
+                    // exclude spam
+                    if (spamVisitors[visitId] || spamTimestamps[timestamp]) continue;
+
+                    if (includeRaw) {
+                        if (!dayDataFiltered[uri]) dayDataFiltered[uri] = [];
+                        dayDataFiltered[uri].push(visitData);
+                    };
+
+                    const
                         deviceType = visitData.winW < 900 ? StatsDevice.mobile : StatsDevice.desktop,
                         isMobile = deviceType == StatsDevice.mobile;
 
-                    if (!visitData.statsId) continue;
+                    // time series (pageviews)
+                    if (visitData.event == StatsEventType.pageview) {
+                        timeVisits[timestamp] =
+                            (timeVisits[timestamp] || 0) + 1;
+                        if (!timeVisitors[timestamp]) timeVisitors[timestamp] = {};
+                        timeVisitors[timestamp][visitId] =
+                            (timeVisitors[timestamp]?.[visitId] || 0) + 1;
+                    };
 
                     // interaction events (clicks / inviews) — per tag, not counted as visits
                     if (
@@ -775,7 +814,17 @@ const
                         visitId
                     });
                     isMobile ? mobileVisits++ : desktopVisits++;
-                    (isMobile ? mobileDim : desktopDim)[pageName].push([visitData.winW, visitData.winH]);
+
+                    // dimensions
+                    const dimAccum = isMobile ? mobileDimAccum : desktopDimAccum;
+                    if (!dimAccum[pageName]) dimAccum[pageName] = dimAccumulator();
+                    dimAccum[pageName].sumW += visitData.winW;
+                    dimAccum[pageName].sumH += visitData.winH;
+                    dimAccum[pageName].count++;
+                    const allAcc = isMobile ? mobileAllAcc : desktopAllAcc;
+                    allAcc.sumW += visitData.winW;
+                    allAcc.sumH += visitData.winH;
+                    allAcc.count++;
 
                     // referral
                     const referrer = visitData.referrer;
@@ -798,8 +847,14 @@ const
 
                     // duration
                     const duration = visitData?.dur || 0;
-                    totalDur.push(duration);
-                    durV.push(duration);
+                    uriDurSum += duration;
+                    totalDurSum += duration;
+                    if (visitMinSeconds < duration && duration < visitCutOffSeconds) {
+                        uriDurMeanSum += duration;
+                        uriDurMeanCount++;
+                        totalDurMeanSum += duration;
+                        totalDurMeanCount++;
+                    };
 
                     // pages
                     uriVisits++;
@@ -828,11 +883,13 @@ const
                 };
 
                 // totals
+                if (!durMeanAccum[pageName]) durMeanAccum[pageName] = durMeanAccumulator();
+                durMeanAccum[pageName].sum += uriDurMeanSum;
+                durMeanAccum[pageName].count += uriDurMeanCount;
                 if (!dataObj[pageName]) dataObj[pageName] = {
                     visits: 0,
                     visitsBounced: 0,
                     dur: 0,
-                    durArray: [],
                     search: 0,
                     domain: 0,
                     other: 0,
@@ -848,8 +905,7 @@ const
                 };
                 dataObj[pageName].visits += uriVisits;
                 dataObj[pageName].visitsBounced += uriVisitsBounced;
-                dataObj[pageName].dur += getSum(durV);
-                dataObj[pageName].durArray = (dataObj[pageName].durArray || []).concat(durV);
+                dataObj[pageName].dur += uriDurSum;
                 dataObj[pageName].search += searchRefValue;
                 dataObj[pageName].domain += thisDomainRefValue;
                 dataObj[pageName].other += otherRefV;
@@ -857,32 +913,23 @@ const
                 dataObj[pageName].devices.desktop += desktopVisits;
             };
 
-            // page visitors
+            // chart
             const
-                mobileWidthAll: DeviceWidthHeight[] = [],
-                desktopWidthAll: DeviceWidthHeight[] = [],
-                dimMean = (array: DeviceWidthHeight[]): DeviceWidthHeight => {
-                    const
-                        meanWidth = getMean(array.map(([w,]) => w)),
-                        meanHeight = getMean(array.map(([, h]) => h));
-                    return [
-                        Math.round(meanWidth / 10) * 10,
-                        Math.round(meanHeight / 10) * 10
-                    ]
-                };
+                { chartVisits, chartVisitors } = chartSeries({
+                    timeVisits,
+                    timeVisitors,
+                    resolution,
+                    days,
+                    updateStartTime,
+                });
+
+            // page visitors + dimensions
             for (const pageName in dataObj) {
-                const
-                    mobilePageDim = mobileDim[pageName],
-                    desktopPageDim = desktopDim[pageName];
                 dataObj[pageName].users = objLen(pageVisitors[pageName]);
                 dataObj[pageName].devicesDim = {
-                    mobile: dimMean(mobilePageDim),
-                    desktop: dimMean(desktopPageDim),
+                    mobile: dimMean(mobileDimAccum[pageName]),
+                    desktop: dimMean(desktopDimAccum[pageName]),
                 };
-
-                // all width
-                for (const item of mobilePageDim) mobileWidthAll.push(item);
-                for (const item of desktopPageDim) desktopWidthAll.push(item);
             };
 
             const
@@ -904,13 +951,12 @@ const
                 other: otherRef,
                 visits: totalVisits,
                 visitsBounced: totalVisitsBounced,
-                dur: getSum(totalDur),
-                durArray: totalDur,
+                dur: totalDurSum,
                 users: totalVisitors,
                 devices: deviceVisits,
                 devicesDim: {
-                    mobile: dimMean(mobileWidthAll),
-                    desktop: dimMean(desktopWidthAll)
+                    mobile: dimMean(mobileAllAcc),
+                    desktop: dimMean(desktopAllAcc)
                 },
             }]);
 
@@ -919,14 +965,15 @@ const
             for (let i = 0; i < pagesList.length; i++) {
                 const
                     [page, data] = pagesList[i],
-                    filtered = data.durArray?.filter(t => visitMinSeconds < t && t < visitCutOffSeconds),
+                    durAccum = page == `total_visits`
+                        ? { sum: totalDurMeanSum, count: totalDurMeanCount }
+                        : durMeanAccum[page] || { sum: 0, count: 0 },
                     newData: PageTrafficDataFinal = {
                         ...data,
                         // mean time filter
-                        durMean: getMean(filtered),
-                        verifiedVisits: filtered?.length,
+                        durMean: durAccum.count ? durAccum.sum / durAccum.count : 0,
+                        verifiedVisits: durAccum.count,
                     };
-                delete newData.durArray;
                 pagesListFinal.push([page, newData]);
             };
             pagesListFinal.sort((a, b) =>

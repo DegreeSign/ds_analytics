@@ -18,8 +18,17 @@
   helper function in the same location and reused, to keep the diff minimal.
 - **Keep `ChangeLog.md` updated** with external / public API changes only (new exports,
   changed types, breaking changes). Ignore internal refactors and renames. The changelog
-  is a serious document: one sentence per change, absolute need-to-know only. Never spell
-  out version bumps. Never mention a type or symbol that is not publicly exported.
+  is a serious document: one sentence per change, absolute need-to-know only. Never mention
+  a type or symbol that is not publicly exported.
+- **The changelog version header must always match the `version` in `package.json`.** Use
+  that exact version as the `## x.y.z` heading for new entries; never use `Unreleased` or
+  any other placeholder.
+
+## Version bump rule
+
+- **Only bump the `version` in `package.json` when explicitly requested.** When requested,
+  bump it and update the matching version in the CDN script URL in `README.md` to the same
+  value. Never bump the version on your own initiative.
 
 ## Minimal diff rules
 

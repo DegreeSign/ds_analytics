@@ -1,4 +1,4 @@
-import { StatsConfig } from "../code/constants";
+import { StatsConfig } from "./stats";
 import { IPConfig } from "./ip";
 
 type ServiceConfig = IPConfig & StatsConfig;

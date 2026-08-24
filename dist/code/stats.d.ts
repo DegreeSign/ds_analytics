@@ -1,7 +1,7 @@
 import { NumberObjObj, NumberObj, DateString } from "@degreesign/utils";
-import { StatsReqParams, VisitorVisitsType, PageVisitPayload, StatsAnalysisResult, TrafficDataDay } from "../types/stats";
+import { StatsReqParams, VisitorVisitsType, PageVisitPayload, StatsAnalysisResult, TrafficDataDay, StatsConfig } from "../types/stats";
 import { IPRange } from "../types/ip";
-import { StatsConfig, statsConfig } from "./constants";
+import { statsConfig } from "./constants";
 declare const recordStats: ({ ipRange, ips, data }: {
     ipRange: IPRange[];
     ips: string;
