@@ -1,0 +1,10 @@
+# ChangeLog
+
+## 1.1.0
+
+- `StatsEventType` converted to an enum and gained an `inview` member; now exported.
+- New exported types `StatsTagMetricSet` and `StatsTagMetricSets`.
+- `tag` field added to `PageVisitRecord` and `PageVisitPayload`.
+- `StatsAnalysisResult` now returns per-tag `clicks` and `inviews` metrics.
+- New exported `recordEvent` helper to submit tagged `click` / `inview` events.
+- New exported `RecordEventPageViewInput` and `RecordEventInteractionInput` types; `recordEvent` now requires `tag` for `click` / `inview` events.

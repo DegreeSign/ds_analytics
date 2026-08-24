@@ -25,16 +25,21 @@ import {
     PageTrafficDataObj,
     StatsDevice,
     StatsDeviceObj,
+    StatsDeviceType,
+    StatsEventType,
     StatsReqParams,
     VisitorVisitsType,
+    PageVisitRecord,
     PageVisitPayload,
     StatsAnalysisResult,
+    TagMetricAccumulator,
+    StatsTagMetricSets,
     TrafficData,
     TrafficDataDay,
 } from "../types/stats";
 import { IPRange } from "../types/ip";
 import { ipCountryCode } from "./analyse";
-import { CountryCode, StatsConfig, countriesCodes, statsConfig, uriCorrupt } from "./constants";
+import { CountryCode, StatsConfig, countriesCodes, statsConfig, uriCorrupt, unknownCountryCode } from "./constants";
 
 const
     trafficData: TrafficData = {},
@@ -126,6 +131,7 @@ const
                     logged: data.logged ? true : false,
                     code,
                     dur,
+                    tag: data.tag,
                 });
             }
         } catch (e) {
@@ -367,7 +373,7 @@ const
                     country = (
                         data.find(([, visits]) => visits.find(p => p.code))
                             ?.[1]?.[0]?.code as CountryCode
-                    ) || `UN`,
+                    ) || unknownCountryCode,
                     pages = data.map(([uri, visits]) => {
                         const
                             visitsArr = visits
@@ -414,6 +420,153 @@ const
         };
         return []
     },
+    chartSeries = ({
+        timeVisits,
+        timeVisitors,
+        resolution,
+        days,
+        updateStartTime,
+    }: {
+        timeVisits: NumberObj,
+        timeVisitors: NumberObjObj,
+        resolution: number,
+        days: string[],
+        updateStartTime?: boolean,
+    }) => {
+        const
+            msInterval = (days?.length * oneDay) / resolution,
+            timestampList = Object.keys(timeVisits)
+                ?.map(n => +n)
+                ?.sort((a, b) => a > b ? 1 : -1),
+            timeStart = updateStartTime ? timestampList[0]
+                : new Date(days[days.length - 1]).getTime(),
+            chartVisits: number[] = [],
+            chartVisitors: number[] = [];
+
+        for (let i = 0; i < resolution; i++) {
+            const
+                start = timeStart + msInterval * i,
+                startTimeIndex = timestampList.findIndex(t => t >= start),
+                end = timeStart + msInterval * (i + 1),
+                endTimeIndexRaw = timestampList.findIndex(t => t >= end),
+                endTimeIndex = endTimeIndexRaw == -1
+                    && startTimeIndex != -1 ?
+                    (timestampList.length - 1)
+                    : endTimeIndexRaw;
+            chartVisits[i] = chartVisits[i] || 0;
+            chartVisitors[i] = chartVisitors[i] || 0;
+            for (let t = startTimeIndex; t <= endTimeIndex; t++) {
+                const
+                    timestamp = timestampList[t],
+                    visits = timeVisits[timestamp];
+                chartVisits[i] += visits || 0;
+                chartVisitors[i] += objLen(timeVisitors[timestamp]);
+            };
+        };
+        return { chartVisits, chartVisitors }
+    },
+    tagAccumulator = (): TagMetricAccumulator => ({
+        eventTotals: {},
+        visitorsCount: {},
+        countriesVisits: {},
+        countriesVisitors: {},
+        deviceVisits: {},
+        deviceVisitors: {},
+        timeVisits: {},
+        timeVisitors: {},
+    }),
+    tagVisitAdd = ({
+        tagTotals,
+        tag,
+        visitData,
+        visitId,
+        deviceType,
+    }: {
+        tagTotals: TagMetricAccumulator,
+        tag: string,
+        visitData: PageVisitRecord,
+        visitId: string,
+        deviceType: StatsDeviceType,
+    }) => {
+        // time series
+        if (!tagTotals.timeVisits[tag]) tagTotals.timeVisits[tag] = {};
+        tagTotals.timeVisits[tag][visitData.timestamp] =
+            (tagTotals.timeVisits[tag][visitData.timestamp] || 0) + 1;
+        if (!tagTotals.timeVisitors[tag]) tagTotals.timeVisitors[tag] = {};
+        if (!tagTotals.timeVisitors[tag][visitData.timestamp]) tagTotals.timeVisitors[tag][visitData.timestamp] = {};
+        tagTotals.timeVisitors[tag][visitData.timestamp][visitId] =
+            (tagTotals.timeVisitors[tag][visitData.timestamp][visitId] || 0) + 1;
+
+        // country
+        if (!tagTotals.countriesVisits[tag]) tagTotals.countriesVisits[tag] = {};
+        if (!tagTotals.countriesVisitors[tag]) tagTotals.countriesVisitors[tag] = {};
+        statsAddOne({
+            typeName: visitData.code && countriesCodes[visitData.code] ?
+                visitData.code : unknownCountryCode,
+            visitsObj: tagTotals.countriesVisits[tag],
+            visitorsObj: tagTotals.countriesVisitors[tag],
+            visitId
+        });
+
+        // device
+        if (!tagTotals.deviceVisits[tag]) tagTotals.deviceVisits[tag] = {
+            mobile: 0,
+            desktop: 0,
+        };
+        if (!tagTotals.deviceVisitors[tag]) tagTotals.deviceVisitors[tag] = {};
+        statsAddOne({
+            typeName: deviceType,
+            visitsObj: tagTotals.deviceVisits[tag],
+            visitorsObj: tagTotals.deviceVisitors[tag],
+            visitId
+        });
+
+        // totals
+        tagTotals.eventTotals[tag] = (tagTotals.eventTotals[tag] || 0) + 1;
+        if (!tagTotals.visitorsCount[tag]) tagTotals.visitorsCount[tag] = {};
+        tagTotals.visitorsCount[tag][visitId] =
+            (tagTotals.visitorsCount[tag][visitId] || 0) + 1;
+    },
+    buildTagMetrics = ({
+        tagTotals,
+        dateReqStr,
+        resolution,
+        updateStartTime,
+    }: {
+        tagTotals: TagMetricAccumulator,
+        dateReqStr: string,
+        resolution: number,
+        updateStartTime?: boolean,
+    }): StatsTagMetricSets => {
+        const
+            days = dateReqStr?.split(`,`),
+            tagMetrics: StatsTagMetricSets = {};
+        for (const tag in tagTotals.eventTotals) {
+            const
+                { chartVisits, chartVisitors } = chartSeries({
+                    timeVisits: tagTotals.timeVisits[tag] || {},
+                    timeVisitors: tagTotals.timeVisitors[tag] || {},
+                    resolution,
+                    days,
+                    updateStartTime,
+                });
+            tagMetrics[tag] = {
+                total: tagTotals.eventTotals[tag],
+                countries: formatVisits({
+                    visitors: tagTotals.countriesVisitors[tag] || {},
+                    visits: tagTotals.countriesVisits[tag] || {},
+                }),
+                devices: formatVisits({
+                    visitors: tagTotals.deviceVisitors[tag] || {},
+                    visits: tagTotals.deviceVisits[tag] || {},
+                }),
+                chartEvents: chartVisits,
+                chartVisitors,
+                visitors: objLen(tagTotals.visitorsCount[tag]),
+            };
+        };
+        return tagMetrics
+    },
     analyseStats = ({
         dayData,
         dateReqStr,
@@ -453,13 +606,15 @@ const
                 pageVisitors: NumberObjObj = {},
                 dayDataTarget: TrafficDataDay = {},
                 dayDataFiltered: TrafficDataDay = {},
-                chartVisitors: number[] = [],
-                chartVisits: number[] = [],
                 spamVisitors: NumberObj = {},
                 spamTimestamps: NumberObj = {},
                 mobileDim: PageDeviceDimensions = {},
                 desktopDim: PageDeviceDimensions = {},
-                dataObj: PageTrafficDataObj = {};
+                dataObj: PageTrafficDataObj = {},
+                clicksAccumulator = tagAccumulator(),
+                inviewsAccumulator = tagAccumulator(),
+                allTimeVisits: NumberObj = {},
+                allTimeVisitors: NumberObjObj = {};
 
             for (const uri in dayData) {
 
@@ -477,6 +632,12 @@ const
                         visitData = visits[i],
                         timestamp = visitData.timestamp;
                     if (!visitData.statsId) continue;
+                    allTimeVisits[timestamp] =
+                        (allTimeVisits[timestamp] || 0) + 1;
+                    if (!allTimeVisitors[timestamp]) allTimeVisitors[timestamp] = {};
+                    allTimeVisitors[timestamp][visitData.statsId] =
+                        (allTimeVisitors[timestamp]?.[visitData.statsId] || 0) + 1;
+                    if (visitData.event != StatsEventType.pageview) continue;
                     timeVisits[timestamp] =
                         (timeVisits[timestamp] || 0) + 1;
                     if (!timeVisitors[timestamp]) timeVisitors[timestamp] = {};
@@ -486,23 +647,38 @@ const
             };
 
             // identify spam
-            for (const timestamp in timeVisits) {
-                const visitors = timeVisitors[timestamp];
+            for (const timestamp in allTimeVisits) {
+                const visitors = allTimeVisitors[timestamp];
 
                 // visitors spam
                 for (const visitId in visitors) {
                     const visits = visitors[visitId];
                     if (visits > spamVisitorLimit) {
-                        timeVisits[timestamp] -= visits; // remove spam visits
+                        allTimeVisits[timestamp] -= visits; // remove spam visits
                         delete visitors[visitId] // remove spam visitor
                         spamVisitors[visitId] = visits; // record spam visitor
                     };
                 };
 
                 // visits spam
-                if (timeVisits[timestamp] > spamVisitsLimit) {
-                    spamTimestamps[timestamp] = timeVisits[timestamp];
+                if (allTimeVisits[timestamp] > spamVisitsLimit) {
+                    spamTimestamps[timestamp] = allTimeVisits[timestamp];
+                    delete allTimeVisits[timestamp];
+                };
+            };
+
+            // exclude spam from chart data
+            for (const timestamp in timeVisits) {
+                const visitors = timeVisitors[timestamp];
+                if (spamTimestamps[timestamp]) {
                     delete timeVisits[timestamp];
+                    delete timeVisitors[timestamp];
+                    continue;
+                };
+                for (const visitId in visitors) {
+                    if (!spamVisitors[visitId]) continue;
+                    timeVisits[timestamp] -= visitors[visitId];
+                    delete visitors[visitId];
                 };
             };
 
@@ -518,33 +694,13 @@ const
             );
 
             const
-                msInterval = (days?.length * oneDay) / resolution,
-                timestampList = Object.keys(timeVisits)
-                    ?.map(n => +n)
-                    ?.sort((a, b) => a > b ? 1 : -1),
-                timeStart = updateStartTime ? timestampList[0]
-                    : new Date(days[days.length - 1]).getTime();
-
-            for (let i = 0; i < resolution; i++) {
-                const
-                    start = timeStart + msInterval * i,
-                    startTimeIndex = timestampList.findIndex(t => t >= start),
-                    end = timeStart + msInterval * (i + 1),
-                    endTimeIndexRaw = timestampList.findIndex(t => t >= end),
-                    endTimeIndex = endTimeIndexRaw == -1
-                        && startTimeIndex != -1 ?
-                        (timestampList.length - 1)
-                        : endTimeIndexRaw;
-                chartVisits[i] = chartVisits[i] || 0;
-                chartVisitors[i] = chartVisitors[i] || 0;
-                for (let t = startTimeIndex; t <= endTimeIndex; t++) {
-                    const
-                        timestamp = timestampList[t],
-                        visits = timeVisits[timestamp];
-                    chartVisits[i] += visits || 0;
-                    chartVisitors[i] += objLen(timeVisitors[timestamp]);
-                };
-            };
+                { chartVisits, chartVisitors } = chartSeries({
+                    timeVisits,
+                    timeVisitors,
+                    resolution,
+                    days,
+                    updateStartTime,
+                });
 
             // process pages
             for (const uri in dayDataTarget) {
@@ -583,10 +739,29 @@ const
                         deviceType = visitData.winW < 900 ? StatsDevice.mobile : StatsDevice.desktop,
                         isMobile = deviceType == StatsDevice.mobile;
 
+                    if (!visitData.statsId) continue;
+
+                    // interaction events (clicks / inviews) — per tag, not counted as visits
+                    if (
+                        visitData.event == StatsEventType.click
+                        || visitData.event == StatsEventType.inview
+                    ) {
+                        tagVisitAdd({
+                            tagTotals: visitData.event == StatsEventType.click ? clicksAccumulator : inviewsAccumulator,
+                            tag: visitData.tag || uri,
+                            visitData,
+                            visitId,
+                            deviceType,
+                        });
+                        continue
+                    };
+
+                    if (visitData.event != StatsEventType.pageview) continue;
+
                     // country
                     statsAddOne({
                         typeName: visitData.code && countriesCodes[visitData.code] ?
-                            visitData.code : `UN`,
+                            visitData.code : unknownCountryCode,
                         visitsObj: countriesVisits,
                         visitorsObj: countriesVisitors,
                         visitId
@@ -769,6 +944,18 @@ const
                 chartVisitors,
                 visitors: totalVisitors,
                 spamVisitors,
+                clicks: buildTagMetrics({
+                    tagTotals: clicksAccumulator,
+                    dateReqStr,
+                    resolution,
+                    updateStartTime,
+                }),
+                inviews: buildTagMetrics({
+                    tagTotals: inviewsAccumulator,
+                    dateReqStr,
+                    resolution,
+                    updateStartTime,
+                }),
                 ...calcFreqVisits ? {
                     freqVisits: freqVisits({ visitorsCount, freqVisitors }),
                 } : {},

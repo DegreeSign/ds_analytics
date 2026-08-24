@@ -24,6 +24,8 @@ interface StatsConfig {
 declare const 
 /** IP range source */
 ipSourceUrl: string, 
+/** Unknown country code */
+unknownCountryCode: CountryCode, 
 /** country codes ID */
 countriesCodes: {
     readonly AD: 1;
@@ -282,4 +284,4 @@ countriesCodes: {
 ipRateLimits: RateLimits, checkInterval = 5000, uriCorrupt: RegExp, // checks for : % space or .html
 statsConfig: StatsConfig, webConfig: WebConfig;
 type CountryCode = keyof typeof countriesCodes;
-export { ipSourceUrl, CountryCode, countriesCodes, RateLimits, ipRateLimits, checkInterval, StatsConfig, uriCorrupt, statsConfig, webConfig, };
+export { ipSourceUrl, unknownCountryCode, CountryCode, countriesCodes, RateLimits, ipRateLimits, checkInterval, StatsConfig, uriCorrupt, statsConfig, webConfig, };

@@ -1,6 +1,6 @@
 import { idRandShort, oneMon, rNum, tN } from "@degreesign/utils";
-import { PageVisitInitiation, PageVisitPayload } from "../types/stats";
-import { CountryCode, checkInterval, countriesCodes, webConfig } from "./constants";
+import { PageVisitInitiation, PageVisitPayload, RecordEventInteractionInput, RecordEventPageViewInput, StatsEventType } from "../types/stats";
+import { CountryCode, checkInterval, countriesCodes, webConfig, unknownCountryCode } from "./constants";
 import { WebConfig } from "../types/web";
 
 const
@@ -14,10 +14,10 @@ const
             const
                 userLanguage: string = navigator.language || navigator.languages?.[0],
                 countryCode = userLanguage?.split(`-`)?.[1]?.toUpperCase() as CountryCode;
-            return countriesCodes[countryCode] ? countryCode : `UN`
+            return countriesCodes[countryCode] ? countryCode : unknownCountryCode
         } catch (e) {
             console.log(`getCountryCode failed`, e)
-            return `UN`
+            return unknownCountryCode
         };
     },
     /** Temp Stats Id */
@@ -84,18 +84,27 @@ const
         return ``
     },
     /** web data */
+    /** @deprecated Use `recordEvent` instead */
     webData = (logged?: boolean): PageVisitPayload => {
         const
             referrer = getReferrer(),
             data: PageVisitPayload = {
                 statsId: tempStatsId(),
                 ...statsBasics(logged),
-                event: `pageview`,
+                event: StatsEventType.pageview,
                 winW: window?.innerWidth,
                 winH: window?.innerHeight,
                 ...referrer ? { referrer } : {},
                 code: getCountryCode(),
             };
+        return data
+    },
+    /** interaction event (click / inview) */
+    recordEvent = (input: RecordEventPageViewInput | RecordEventInteractionInput): PageVisitPayload => {
+        const data = webData(input.logged);
+        data.event = input.eventType;
+        if (input.uriOverride) data.uri = input.uriOverride;
+        if (input.eventType != StatsEventType.pageview) data.tag = input.tag;
         return data
     },
     /** web analytics (browser) */
@@ -184,6 +193,7 @@ const
 export {
     setWebConfig,
     webData,
+    recordEvent,
     webAnalytics,
     getCountryCode,
 };

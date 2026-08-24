@@ -1,6 +1,6 @@
 import { seoDt } from "@degreesign/utils";
 import { IPRange } from "../types/ip";
-import { CountryCode, countriesCodes } from "./constants";
+import { CountryCode, countriesCodes, unknownCountryCode } from "./constants";
 
 const
     /** IP Num */
@@ -39,7 +39,7 @@ const
         } catch (e) {
             console.log(seoDt(), `ipCountryCode failed`, e);
         };
-        return code && countriesCodes[code] ? code : `UN`
+        return code && countriesCodes[code] ? code : unknownCountryCode
     };
 
 export {

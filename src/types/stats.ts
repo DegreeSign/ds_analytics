@@ -1,4 +1,4 @@
-import { NumberObj } from "@degreesign/utils";
+import { NumberObj, NumberObjObj } from "@degreesign/utils";
 import { CountryCode } from "../code/constants";
 
 enum StatsDevice {
@@ -25,6 +25,8 @@ interface PageVisitBasics {
     timestamp: number;
     /** Visitor Logged In */
     logged?: boolean;
+    /** interaction tag (clicks / inviews) */
+    tag?: string;
 }
 
 interface PageVisitURI {
@@ -33,7 +35,31 @@ interface PageVisitURI {
 }
 
 /** type of stats event */
-type StatsEventType = `pageview` | `click`;
+enum StatsEventType {
+    pageview = `pageview`,
+    click = `click`,
+    inview = `inview`,
+};
+
+/** recordEvent input for a pageview (no tag) */
+interface RecordEventPageViewInput {
+    /** Visitor Logged In */
+    logged?: boolean;
+    eventType: StatsEventType.pageview;
+    /** page URI override */
+    uriOverride?: string;
+}
+
+/** recordEvent input for interaction events (clicks / inviews) — tag is required */
+interface RecordEventInteractionInput {
+    /** Visitor Logged In */
+    logged?: boolean;
+    eventType: StatsEventType.click | StatsEventType.inview;
+    /** page URI override */
+    uriOverride?: string;
+    /** interaction tag */
+    tag: string;
+}
 
 /** Stats recording initiation (server) */
 interface PageVisitRecord extends PageVisitBasics {
@@ -104,6 +130,37 @@ interface PageTrafficDataObjFinal {
 
 type VisitorVisitsType = [string, number, number];
 
+/** Object keyed by tag */
+interface TaggedObj<T> {
+    [tag: string]: T
+}
+
+/** Per-tag accumulator for interaction events (clicks / inviews) */
+interface TagMetricAccumulator {
+    eventTotals: NumberObj,
+    visitorsCount: NumberObjObj,
+    countriesVisits: TaggedObj<NumberObj>,
+    countriesVisitors: TaggedObj<NumberObjObj>,
+    deviceVisits: TaggedObj<StatsDeviceObj<number>>,
+    deviceVisitors: TaggedObj<NumberObjObj>,
+    timeVisits: TaggedObj<NumberObj>,
+    timeVisitors: TaggedObj<NumberObjObj>,
+}
+
+/** Aggregated metrics for a single interaction tag (clicks / inviews) */
+interface StatsTagMetricSet {
+    total: number,
+    countries: VisitorVisitsType[],
+    devices: VisitorVisitsType[],
+    /** chartEvents (aka chartVisits) */
+    chartEvents: number[],
+    chartVisitors: number[],
+    visitors: number,
+}
+
+/** Interaction metrics (clicks / inviews) grouped per tag */
+type StatsTagMetricSets = TaggedObj<StatsTagMetricSet>;
+
 interface StatsAnalysisResult {
     total: number,
     pages: [string, PageTrafficDataFinal][],
@@ -113,6 +170,8 @@ interface StatsAnalysisResult {
     chartVisitors: number[],
     visitors: number,
     spamVisitors: NumberObj,
+    clicks: StatsTagMetricSets,
+    inviews: StatsTagMetricSets,
     freqVisits?: string[];
     /** Raw Data */
     dayDataFiltered?: TrafficDataDay;
@@ -165,6 +224,13 @@ export {
     StatsDeviceType,
     StatsDeviceObj,
     StatsDevice,
+    StatsEventType,
+    RecordEventPageViewInput,
+    RecordEventInteractionInput,
+    TaggedObj,
+    TagMetricAccumulator,
+    StatsTagMetricSet,
+    StatsTagMetricSets,
     PageDeviceDimensions,
     DeviceWidthHeight,
 }
