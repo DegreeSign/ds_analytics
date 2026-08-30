@@ -1,5 +1,6 @@
 import { oneDay, oneMin, seoDt } from "@degreesign/utils";
 import { ipRangeUpdate, ipListReset, ipData } from "./manage";
+import { ipRangeSort } from "./analyse";
 import { IPConfig } from "../types/ip";
 import { redJ } from "@degreesign/cache";
 
@@ -16,7 +17,7 @@ const
         ipLimitResetInterval = oneMin * 5,
     }: IPConfig) => {
         try {
-            ipData.ipRange = redJ(`ip_range.json`, true) || [];
+            ipData.ipRange = ipRangeSort(redJ(`ip_range.json`, true) || []);
 
             // fetch ip range
             if (!ipData.ipRange?.length)

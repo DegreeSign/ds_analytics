@@ -1,5 +1,10 @@
 # ChangeLog
 
+## 1.1.3
+
+- `webAnalytics` now passes a `final` flag to the `record` callback on page-dismissal sends.
+- `RecordCallback` now exported from the browser bundle.
+
 ## 1.1.2
 
 - `StatsDevice` and `StatsEventType` now exported from the browser bundle.

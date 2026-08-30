@@ -106,6 +106,9 @@ interface TrafficData {
     [date: string]: TrafficDataDay
 };
 
+/** session -> first-visit index by date + uri */
+interface SessionIndex { [date: string]: { [pageURI: string]: Map<string, number> } };
+
 interface PageTrafficDataBasics {
     visits: number,
     visitsBounced: number,
@@ -236,6 +239,7 @@ export {
     PageVisitPayload,
     TrafficData,
     TrafficDataDay,
+    SessionIndex,
     PageTrafficData,
     PageTrafficDataObj,
     PageTrafficDataFinal,

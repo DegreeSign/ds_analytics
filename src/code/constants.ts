@@ -17,6 +17,7 @@ const
         priorityAccess: 500,
     },
     checkInterval = 5e3,
+    checkIntervalMax = oneSec * 300,
     /** Traffic cache TTL for eviction (5 minutes) */
     trafficDataCacheTtl = oneSec * 300,
     uriCorrupt = /[:%\s]|.html/, // checks for : % space or .html
@@ -39,6 +40,7 @@ export {
     ipRateLimits,
 
     checkInterval,
+    checkIntervalMax,
     trafficDataCacheTtl,
     uriCorrupt,
     statsConfig,

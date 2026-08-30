@@ -8,7 +8,7 @@ import { IPCountryRange, IPData, IPList, IPRange, RateLimits } from "./types/ip"
 import { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsDevice, StatsEventType, RecordEventPageViewInput, RecordEventInteractionInput, StatsTagMetricSet, StatsTagMetricSets, PageDeviceDimensions, DeviceWidthHeight, StatsConfig } from "./types/stats";
 import { startAnalyticsServer } from "./code/start";
 import { ServiceConfig } from "./types/general";
-import { WebConfig, getCountryCode, setWebConfig, webAnalytics, webData, recordEvent } from "./browser";
+import { RecordCallback, WebConfig, getCountryCode, setWebConfig, webAnalytics, webData, recordEvent } from "./browser";
 
 export {
     // ip
@@ -73,6 +73,7 @@ export {
 
     // web
     WebConfig,
+    RecordCallback,
     setWebConfig,
     webData,
     recordEvent,

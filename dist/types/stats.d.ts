@@ -88,6 +88,12 @@ interface TrafficDataDay {
 interface TrafficData {
     [date: string]: TrafficDataDay;
 }
+/** session -> first-visit index by date + uri */
+interface SessionIndex {
+    [date: string]: {
+        [pageURI: string]: Map<string, number>;
+    };
+}
 interface PageTrafficDataBasics {
     visits: number;
     visitsBounced: number;
@@ -195,4 +201,4 @@ interface StatsConfig {
     /** URI Alias { home: `HomePage` } */
     uriAlias?: StringObj;
 }
-export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsDevice, StatsEventType, RecordEventPageViewInput, RecordEventInteractionInput, TaggedObj, TagMetricAccumulator, StatsTagMetricSet, StatsTagMetricSets, PageDeviceDimensions, DeviceWidthHeight, DimAccumulator, DurMeanAccumulator, StatsConfig, };
+export { PageVisitInitiation, PageVisitRecord, StatsFreqVisitors, StatsFreqVisits, PageVisitPayload, TrafficData, TrafficDataDay, SessionIndex, PageTrafficData, PageTrafficDataObj, PageTrafficDataFinal, PageTrafficDataObjFinal, VisitorVisitsType, StatsAnalysisResult, StatsReqParams, StatsDeviceType, StatsDeviceObj, StatsDevice, StatsEventType, RecordEventPageViewInput, RecordEventInteractionInput, TaggedObj, TagMetricAccumulator, StatsTagMetricSet, StatsTagMetricSets, PageDeviceDimensions, DeviceWidthHeight, DimAccumulator, DurMeanAccumulator, StatsConfig, };

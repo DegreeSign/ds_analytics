@@ -1,6 +1,6 @@
 import { PageVisitPayload, RecordEventInteractionInput, RecordEventPageViewInput } from "../types/stats";
 import { CountryCode } from "./constants";
-import { WebConfig } from "../types/web";
+import { RecordCallback, WebConfig } from "../types/web";
 declare const 
 /** Set Web Configurations */
 setWebConfig: (config: WebConfig) => void, 
@@ -14,6 +14,6 @@ recordEvent: (input: RecordEventPageViewInput | RecordEventInteractionInput) => 
 /** web analytics (browser) */
 webAnalytics: ({ logged, record, }: {
     logged?: boolean;
-    record: (data: PageVisitPayload) => any;
+    record: RecordCallback;
 }) => void;
 export { setWebConfig, webData, recordEvent, webAnalytics, getCountryCode, };

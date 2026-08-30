@@ -59,7 +59,7 @@ webAnalytics({
 ## Browser CDN Implementation (Submission)
 ```html
 <script 
-    src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.2/dist/browser/degreesign.min.js"
+    src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.3/dist/browser/degreesign.min.js"
 ></script>
 
 <script>
@@ -71,9 +71,10 @@ dsAnalytics.setWebConfig({
 // Web Page Analytics
 dsAnalytics.webAnalytics({
     logged: false,
-    record: data => {
+    record: (data, final) => {
         // Send `data` to server
         console.log(`webAnalytics`, data);
+        if (final) console.log(`Visit ended`);
     },
 });
 </script>

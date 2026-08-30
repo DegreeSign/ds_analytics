@@ -1,6 +1,7 @@
 import { seoDt } from "@degreesign/utils";
 import { IPRange } from "../types/ip";
 import { CountryCode, ipSourceUrl } from "./constants";
+import { ipRangeSort } from "./analyse";
 
 const
     ipCountryDataUpdate = async (): Promise<IPRange[]> => await new Promise(async resolve => {
@@ -34,7 +35,7 @@ const
 
             if (!ipRanges?.length)
                 console.log(seoDt(), `ipCountryDataUpdate no data`);
-            else resolve(ipRanges);
+            else resolve(ipRangeSort(ipRanges));
 
         } catch (e) {
             console.log(seoDt(), `ipCountryDataUpdate failed`, e);

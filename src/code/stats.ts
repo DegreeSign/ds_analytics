@@ -33,6 +33,7 @@ import {
     StatsTagMetricSets,
     TrafficData,
     TrafficDataDay,
+    SessionIndex,
     DimAccumulator,
     DurMeanAccumulator,
     StatsConfig,
@@ -44,11 +45,7 @@ import { CountryCode, countriesCodes, statsConfig, trafficDataCacheTtl, uriCorru
 const
     trafficData: TrafficData = {},
     trafficDataRead: NumberObj = {},
-    sessionIndex: {
-        [date: string]: {
-            [uri: string]: Map<string, number>
-        }
-    } = {},
+    sessionIndex: SessionIndex = {},
     validURI = (uri: string) => {
         if (
             !uri
