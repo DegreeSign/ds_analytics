@@ -12,9 +12,9 @@ const
     unknownCountryCode: CountryCode = `UN`,
     /** IP rate limits */
     ipRateLimits: RateLimits = {
-        generalAccess: 20,
-        whiteListed: 100,
-        priorityAccess: 500,
+        generalAccess: 100,
+        whiteListed: 500,
+        priorityAccess: 3000,
     },
     checkInterval = 5e3,
     checkIntervalMax = oneSec * 300,

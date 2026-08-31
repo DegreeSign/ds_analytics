@@ -39,11 +39,11 @@ interface IPConfig {
 
 /** IP Rate limits */
 interface RateLimits {
-    /** general visitor */
+    /** general visitor (default 100) */
     generalAccess: number;
-    /** white list */
+    /** white list (default 500) */
     whiteListed: number;
-    /** paid list */
+    /** paid list (default 3000) */
     priorityAccess: number;
 }
 
