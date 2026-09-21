@@ -14,10 +14,10 @@
   resolved "https://registry.yarnpkg.com/@degreesign/cache/-/cache-0.0.7.tgz#189044eff15bb6b78c0574a0167036e0925050f2"
   integrity sha512-s1A8lR9wj3xPLt3up4hJb0epjexa4/9iKCvqDLKX6X3tix0zFDoWl6N29Wu3QfohI9Rxd2wotn2ls3hcwAnl+A==
 
-"@degreesign/utils@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@degreesign/utils/-/utils-1.0.2.tgz#0f97fedd54aaf052f668f4aa0b32eaee25de5cd8"
-  integrity sha512-pevKUFTDPes9L/GKfQxtyP9YGCoqrPZ0deBiprpH0hFwUmJsi1+G+y08HRaOb0IQ8hagyxQt8rObx/H4q48zMQ==
+"@degreesign/utils@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@degreesign/utils/-/utils-1.0.3.tgz#7beebd36a50bd88f53c70d8e271f362338d5a5ad"
+  integrity sha512-SgVYthDe5OC23uA+bEXNmBfmYOIrf2cL4ACbnDM2/hY2nwbxcUflVx7k60kwqEKcEvOhcEGeSeRUAmwUmEZRqA==
 
 "@discoveryjs/json-ext@0.5.7":
   version "0.5.7"

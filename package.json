@@ -1,6 +1,6 @@
 {
   "name": "@degreesign/analytics",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "main": "dist/node/degreesign.node.min.js",
   "module": "dist/node/degreesign.node.min.js",
   "browser": "dist/browser/degreesign.min.js",
@@ -12,12 +12,28 @@
     "type": "git",
     "url": "git+https://github.com/DegreeSign/ds_analytics.git"
   },
-  "description": "DegreeSign Server Analytics SDK - Private, simple, essential analytics",
+  "description": "Privacy-first, self-hosted web analytics SDK for Node.js and the browser - pageviews, clicks, in-view events, IP geolocation and traffic reports with TypeScript support.",
   "keywords": [
     "degreesign",
+    "analytics",
     "web analytics",
     "privacy analytics",
-    "web app"
+    "privacy-first",
+    "self-hosted",
+    "self-hosted analytics",
+    "cookieless analytics",
+    "cookie-free tracking",
+    "pageview tracking",
+    "click tracking",
+    "inview tracking",
+    "traffic analysis",
+    "IP geolocation",
+    "rate limiting",
+    "typescript",
+    "nodejs",
+    "browser",
+    "umd",
+    "sdk"
   ],
   "author": "DegreeSign",
   "license": "MIT",
@@ -41,7 +57,7 @@
   },
   "dependencies": {
     "@degreesign/cache": "^0.0.7",
-    "@degreesign/utils": "^1.0.2"
+    "@degreesign/utils": "^1.0.3"
   },
   "files": [
     "dist/"
