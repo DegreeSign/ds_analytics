@@ -14,6 +14,7 @@
 - [Introduction](#introduction)
 - [Why DegreeSign Analytics](#why-degreesign-analytics)
 - [Installation](#installation)
+- [Architecture](#architecture)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
   - [IP Management and Rate Limiting](#ip-management-and-rate-limiting)
@@ -61,6 +62,12 @@ Or load the browser build straight from a CDN (UMD global: `dsAnalytics`):
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.5/dist/browser/degreesign.min.js"></script>
 ```
+
+## Architecture
+
+The package is two bundles that meet at your `record` callback: the browser bundle builds pageview, click and in-view payloads and sends them on a backing-off heartbeat, while the Node bundle rate-limits IPs, resolves countries and stores daily traffic as JSON.
+
+The [architecture map](https://degreesign.github.io/ds_analytics/architecture.html) maps every module, function and type with its definition line, the relations between them, the full payload path and the browser visibility lifecycle. It is one self-contained HTML file with no network access — open it directly in a browser.
 
 ## Quick Start
 

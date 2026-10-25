@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>code structure</title>
+    <style>
+        :root {
+            --paper: #f4efe5;
+            --paper-2: #ece4d5;
+            --card: #fffdf7;
+            --ink: #2c271f;
+            --muted: #6f6657;
+            --faint: #9a9080;
+            --line: #d7cbb7;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; }
+        body {
+            font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: var(--paper);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        #app { display: flex; flex-direction: column; height: 100vh; }
+        #bar {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            padding: 9px 16px 8px;
+            border-bottom: 1px solid var(--line);
+            background: #f7f2e8;
+            z-index: 5;
+        }
+        .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+        .brand h1 {
+            margin: 0;
+            font: 600 17px/1.1 "Iowan Old Style", Palatino, Georgia, serif;
+            letter-spacing: 0.01em;
+        }
+        .brand .meta {
+            margin: 0;
+            font: 10.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: var(--faint);
+            white-space: nowrap;
+        }
+        .bands { display: flex; gap: 4px; flex-wrap: wrap; }
+        .bands button {
+            font-size: 10.5px;
+            padding: 3px 7px;
+            border-left-width: 3px;
+            border-left-color: var(--band);
+        }
+        .tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+        #search {
+            width: 158px;
+            font: 11.5px ui-monospace, monospace;
+            padding: 4px 8px;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--card);
+            color: var(--ink);
+        }
+        #search:focus { outline: 2px solid #b9a887; outline-offset: 0; }
+        button {
+            font: 11px/1 ui-sans-serif, system-ui, sans-serif;
+            padding: 5px 9px;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: #fbf7ef;
+            color: #453d31;
+            cursor: pointer;
+        }
+        button:hover { background: #fffdf7; border-color: #bfae92; }
+        button.on { background: #2c271f; color: #f7f2e8; border-color: #2c271f; }
+        #zoom {
+            font: 10.5px ui-monospace, monospace;
+            color: var(--muted);
+            min-width: 36px;
+            text-align: center;
+        }
+        #stage { position: relative; flex: 1; display: flex; min-height: 0; }
+        #viewport {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            cursor: grab;
+            background-image:
+                linear-gradient(#e6ddcd 1px, transparent 1px),
+                linear-gradient(90deg, #e6ddcd 1px, transparent 1px);
+            background-size: 48px 48px;
+            background-position: -1px -1px;
+            touch-action: none;
+        }
+        #viewport.drag { cursor: grabbing; }
+        #canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+        #edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+        .band {
+            position: absolute;
+            left: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding-top: 5px;
+            border-top: 1px solid var(--line);
+            pointer-events: none;
+        }
+        .band b {
+            font: 650 10.5px/1 ui-sans-serif, system-ui, sans-serif;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: #4c4234;
+        }
+        .band span { font-size: 10px; color: var(--faint); }
+        .wash {
+            position: absolute;
+            left: 6px;
+            border-radius: 6px;
+            background: var(--band);
+            opacity: 0.075;
+            pointer-events: none;
+        }
+        .file { position: absolute; }
+        .file-head {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            height: 18px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .file-head b {
+            font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: var(--band);
+        }
+        .file-head i {
+            font-style: normal;
+            font: 9px/1 ui-monospace, monospace;
+            color: #ada291;
+        }
+        .file-cols { display: flex; gap: 12px; align-items: flex-start; }
+        .col { width: 208px; display: flex; flex-direction: column; gap: 6px; }
+        .node {
+            position: relative;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--band);
+            border-radius: 3px;
+            padding: 5px 7px 6px;
+            cursor: pointer;
+            transition: opacity 0.16s ease, box-shadow 0.16s ease;
+        }
+        .node .lbl {
+            font-weight: 650;
+            font-size: 11px;
+            line-height: 1.3;
+            letter-spacing: 0.005em;
+            padding-right: 22px;
+            word-break: break-word;
+        }
+        .node .sig {
+            margin-top: 1px;
+            font: 9.5px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: #5d5446;
+            word-break: break-word;
+        }
+        .node .ln {
+            position: absolute;
+            top: 4px;
+            right: 5px;
+            font: 8.5px/1 ui-monospace, monospace;
+            color: #b3a895;
+        }
+        .node .no {
+            display: none;
+            position: absolute;
+            left: -8px;
+            top: -8px;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background: #2c271f;
+            color: #f7f2e8;
+            font: 600 9.5px/17px ui-sans-serif, sans-serif;
+            text-align: center;
+        }
+        .node.lit {
+            box-shadow: 0 0 0 2px var(--band), 0 6px 16px rgba(70, 52, 22, 0.14);
+            z-index: 3;
+        }
+        .node.dim { background: #f6f1e7; border-color: #e7dfd0; border-left-color: #ded4c2; }
+        .node.dim > * { opacity: 0.3; }
+        .node.sel {
+            background: #fff;
+            box-shadow: 0 0 0 2px #2c271f, 0 8px 22px rgba(70, 52, 22, 0.2);
+            z-index: 4;
+        }
+        .node.step { box-shadow: 0 0 0 2px #2c271f; }
+        .node.step .no { display: block; }
+        .node.hit { box-shadow: 0 0 0 2px #c08a4a; }
+        .node:focus-visible { outline: 2px solid #c08a4a; outline-offset: 1px; }
+        .edge { fill: none; stroke-width: 1.15; opacity: 0.24; transition: opacity 0.16s ease; }
+        .edge.lit { opacity: 0.95; stroke-width: 1.8; }
+        .edge.dim { opacity: 0.035; }
+        .k-build { stroke: #6f9464; }
+        .k-call { stroke: #5579a4; }
+        .k-event { stroke: #c08a4a; stroke-dasharray: 5 3; }
+        .k-store { stroke: #9878ad; stroke-dasharray: 2 3; }
+        .k-type { stroke: #a49b8c; stroke-width: 1; opacity: 0.1; }
+        .k-inner { stroke: #b9ab95; stroke-dasharray: 1 3; opacity: 0.1; }
+        .k-type.lit, .k-inner.lit { opacity: 0.95; }
+        #hint {
+            position: absolute;
+            left: 14px;
+            bottom: 12px;
+            font: 10.5px ui-monospace, monospace;
+            color: #8c8272;
+            background: rgba(247, 242, 232, 0.86);
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            padding: 4px 8px;
+            pointer-events: none;
+        }
+        #panel {
+            flex: 0 0 322px;
+            width: 322px;
+            border-left: 1px solid var(--line);
+            background: var(--paper-2);
+            overflow: auto;
+            padding: 13px 15px 40px;
+        }
+        #panel h2 {
+            margin: 15px 0 7px;
+            font: 650 10px/1 ui-sans-serif, sans-serif;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #7b7060;
+        }
+        #panel h2:first-child { margin-top: 2px; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            padding: 10px 11px;
+        }
+        .card .path {
+            font: 9.5px/1.4 ui-monospace, monospace;
+            color: var(--faint);
+            word-break: break-all;
+        }
+        .card .name {
+            margin: 2px 0 0;
+            font: 650 14px/1.25 ui-sans-serif, sans-serif;
+        }
+        .card .sig {
+            margin-top: 3px;
+            font: 10px/1.4 ui-monospace, monospace;
+            color: #4f4739;
+            word-break: break-word;
+        }
+        .card .note { margin-top: 6px; font-size: 11.5px; color: #5c5345; }
+        .card .note code { font: 10px ui-monospace, monospace; color: #6e3354; }
+        .rel { margin-top: 10px; }
+        .rel b {
+            display: block;
+            font: 600 9px/1 ui-sans-serif, sans-serif;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--faint);
+            margin-bottom: 4px;
+        }
+        .rel button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            font: 10.5px/1.35 ui-monospace, monospace;
+            padding: 2px 0;
+            border: 0;
+            background: none;
+            color: #3f5f86;
+        }
+        .rel button:hover { color: #1c3550; text-decoration: underline; }
+        .rel button span { color: #a89c88; }
+        .bandlist button {
+            padding: 5px 0 5px 8px;
+            color: inherit;
+            border-left: 3px solid var(--band);
+        }
+        .bandlist button b {
+            display: block;
+            font: 600 11px/1.3 ui-sans-serif, system-ui, sans-serif;
+            color: #2c271f;
+        }
+        .bandlist button span {
+            display: block;
+            font: 10px/1.35 ui-sans-serif, system-ui, sans-serif;
+            color: #8c8272;
+        }
+        .route {
+            font: 9.5px/1.55 ui-monospace, monospace;
+            color: #756a58;
+            word-break: break-word;
+        }
+        .route b { color: #2c271f; }
+        .empty { font-size: 11.5px; color: #7d7363; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; font-size: 11px; }
+        .stats div { display: flex; justify-content: space-between; gap: 6px; }
+        .stats span { color: var(--faint); }
+        .stats b { font: 600 11px ui-monospace, monospace; }
+        .legend { display: grid; gap: 3px; font-size: 10.5px; color: #635a4b; }
+        .legend i {
+            display: inline-block;
+            width: 22px;
+            height: 0;
+            border-top: 2px solid;
+            margin-right: 7px;
+            vertical-align: middle;
+        }
+        .legend .k-build { border-top-color: #6f9464; }
+        .legend .k-call { border-top-color: #5579a4; }
+        .legend .k-event { border-top-color: #c08a4a; border-top-style: dashed; }
+        .legend .k-store { border-top-color: #9878ad; border-top-style: dotted; }
+        .legend .k-type { border-top-color: #a49b8c; }
+        .legend .k-inner { border-top-color: #b9ab95; border-top-style: dotted; }
+        .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+        .steps li {
+            counter-increment: step;
+            position: relative;
+            padding: 3px 0 5px 22px;
+            font-size: 11px;
+            color: #5c5345;
+            border-bottom: 1px solid #e2d9ca;
+        }
+        .steps li:last-child { border-bottom: 0; }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 4px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #2c271f;
+            color: #f7f2e8;
+            font: 600 9px/15px ui-sans-serif, sans-serif;
+            text-align: center;
+        }
+        .steps li b { display: block; color: #2c271f; font: 600 10.5px ui-monospace, monospace; }
+        #state-box svg { width: 100%; height: auto; display: block; }
+        .state-title { font: 600 9.5px ui-monospace, monospace; fill: #7b7060; }
+        .state-box { font: 9.5px ui-monospace, monospace; fill: #3c352b; }
+        .state-arrow { stroke: #9b8f7c; stroke-width: 1; fill: none; }
+        @media (max-width: 900px) {
+            #panel {
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                width: 300px;
+                flex-basis: 300px;
+                box-shadow: -10px 0 30px rgba(60, 45, 20, 0.12);
+            }
+            #hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header id="bar">
+        <div class="brand">
+            <h1>code structure</h1>
+            <p class="meta" id="meta">dependency map</p>
+        </div>
+        <div class="bands" id="bands"></div>
+        <div class="tools">
+            <input id="search" type="search" placeholder="find a function" autocomplete="off"
+                spellcheck="false">
+            <button id="flow" title="Number the primary flow">flow</button>
+            <button id="fit" title="Fit the whole map">fit</button>
+            <button id="minus" title="Zoom out">-</button>
+            <span id="zoom">100%</span>
+            <button id="plus" title="Zoom in">+</button>
+        </div>
+    </header>
+    <div id="stage">
+        <div id="viewport">
+            <div id="canvas">
+                <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+            <div id="hint">drag to pan · wheel to zoom · click to pin</div>
+        </div>
+        <aside id="panel">
+            <div id="panel-main"></div>
+            <h2>State machines</h2>
+            <div class="card" id="state-box"></div>
+            <h2>Legend</h2>
+            <div class="card">
+                <div class="legend">
+                    <div><i class="k-build"></i>builds or wires</div>
+                    <div><i class="k-call"></i>calls</div>
+                    <div><i class="k-event"></i>raises or emits</div>
+                    <div><i class="k-store"></i>stores or downloads</div>
+                    <div><i class="k-type"></i>type only</div>
+                    <div><i class="k-inner"></i>inner closure</div>
+                </div>
+            </div>
+            <h2>Reading the map</h2>
+            <div class="card empty" id="intro" style="font-size:11px"></div>
+        </aside>
+    </div>
+</div>
+<script>
+// DATA BEGIN
+// Map metadata. Fill every field for a real package.
+const MAP = {
+    name: `@degreesign/analytics`,
+    subtitle: `privacy-first page, click and in-view analytics for Node.js and the browser`,
+    root: `entry.public`,
+    flow: `visit`,
+    intro: `Bands run top to bottom in dependency order. The host page calls the`
+        + ` browser bundle, which hands each payload back to the host; the Node`
+        + ` bundle starts once, records payloads, then aggregates daily traffic`
+        + ` into reports. Hover brightens a node and its neighbours, click pins it.`,
+    ignore: [],
+};
+
+// Bands are layers, ordered from the outside in.
+const BANDS = [
+    {
+        id: `host`,
+        title: `1 · host boundary`,
+        hint: `the page, its server and the callback`,
+        color: `#8a7a5f`,
+    },
+    {
+        id: `entries`,
+        title: `2 · public entries`,
+        hint: `what the two bundles export`,
+        color: `#274b6b`,
+    },
+    {
+        id: `browser`,
+        title: `3 · browser capture`,
+        hint: `build payloads, send on a heartbeat`,
+        color: `#3f5f86`,
+    },
+    {
+        id: `start`,
+        title: `4 · server start`,
+        hint: `one call that wires the runtime`,
+        color: `#7a5a3f`,
+    },
+    {
+        id: `stats`,
+        title: `5 · traffic pipeline`,
+        hint: `record, store and analyse visits`,
+        color: `#2f6b52`,
+    },
+    {
+        id: `ip`,
+        title: `6 · IP service`,
+        hint: `ranges, rate limits and country lookup`,
+        color: `#6b4b6b`,
+    },
+    {
+        id: `config`,
+        title: `7 · configuration`,
+        hint: `limits, defaults and country codes`,
+        color: `#5c574f`,
+    },
+    {
+        id: `types`,
+        title: `8 · types`,
+        hint: `the shapes that cross every boundary`,
+        color: `#7a6a4a`,
+    },
+    {
+        id: `build`,
+        title: `9 · build`,
+        hint: `webpack and package entry points`,
+        color: `#4f574f`,
+    },
+];
+
+const FILES = [];
+const NODES = [];
+const EDGES = [];
+const STATES = [];
+const FLOWS = {};
+
+// Helpers used by the entries below. Keep them as they are.
+const f = (id, band, label, path, loc, external = false) =>
+    FILES.push({ id, band, label, path, loc, external });
+
+const n = (file, id, line, label, sig, note = ``) =>
+    NODES.push({ id: file + `.` + id, file, line, label, sig, note });
+
+const e = (from, to, kind) => EDGES.push({ from, to, kind });
+
+const step = (ids, text) => ({ ids, text });
+
+f(`host`, `host`, `host app`, `host app`, 0, true);
+f(`entry`, `entries`, `index.ts`, `src/index.ts`, 82);
+f(`browser`, `entries`, `browser.ts`, `src/browser.ts`, 17);
+f(`web`, `browser`, `web.ts`, `src/code/web.ts`, 247);
+f(`start`, `start`, `start.ts`, `src/code/start.ts`, 21);
+f(`stats`, `stats`, `stats.ts`, `src/code/stats.ts`, 1043);
+f(`ip`, `ip`, `update.ts`, `src/code/update.ts`, 44);
+f(`range`, `ip`, `range.ts`, `src/code/range.ts`, 48);
+f(`analyse`, `ip`, `analyse.ts`, `src/code/analyse.ts`, 75);
+f(`manage`, `ip`, `manage.ts`, `src/code/manage.ts`, 97);
+f(`constants`, `config`, `constants.ts`, `src/code/constants.ts`, 49);
+f(`countries`, `config`, `countries.ts`, `src/code/countries.ts`, 5);
+f(`statsTypes`, `types`, `stats.ts`, `src/types/stats.ts`, 265);
+f(`ipTypes`, `types`, `ip.ts`, `src/types/ip.ts`, 57);
+f(`webTypes`, `types`, `web.ts`, `src/types/web.ts`, 15);
+f(`countryTypes`, `types`, `country.ts`, `src/types/country.ts`, 7);
+f(`generalTypes`, `types`, `general.ts`, `src/types/general.ts`, 8);
+f(`pkg`, `build`, `package.json`, `package.json`, 65);
+f(`webpack`, `build`, `webpack.config.ts`, `webpack.config.ts`, 84);
+
+n(`host`, `app`, 0, `host app`, `import · call · callback`,
+    `The page that runs the browser bundle and the server that receives its payloads.`);
+
+n(`entry`, `public`, 13, `public exports`, `index.ts surface`,
+    `Exports the server API: IP service, stats recording, analysis and configuration.`);
+
+n(`browser`, `public`, 5, `browser exports`, `webAnalytics + recordEvent + types`,
+    `Only the capture helpers and their types leave the browser bundle.`);
+
+n(`web`, `setWebConfig`, 8, `setWebConfig`, `(config: WebConfig) => void`,
+    `Overrides the heartbeat interval used between payloads.`);
+n(`web`, `getCountryCode`, 12, `getCountryCode`, `() => CountryCode`,
+    `Derives an approximate country from the browser language.`);
+n(`web`, `tempStatsId`, 24, `tempStatsId`, `() => string`,
+    `Reuses a month-long anonymous visitor id from localStorage or mints one.`);
+n(`web`, `getPathName`, 56, `getPathName`, `() => string`,
+    `Reads the current pathname behind a try/catch.`);
+n(`web`, `statsBasics`, 64, `statsBasics`, `(logged?: boolean) => PageVisitInitiation`,
+    `Builds the session id, timestamp and URI for a fresh visit.`);
+n(`web`, `getReferrer`, 78, `getReferrer`, `() => string`,
+    `Reads document.referrer behind a try/catch.`);
+n(`web`, `webData`, 88, `webData`, `(logged?: boolean) => PageVisitPayload`,
+    `Deprecated pageview builder kept for existing callers.`);
+n(`web`, `recordEvent`, 103, `recordEvent`, `(input) => PageVisitPayload`,
+    `Builds a pageview, click or in-view payload from one input.`);
+n(`web`, `webAnalytics`, 111, `webAnalytics`, `({ logged?, record }) => void`,
+    `Sends the first payload, then repeats on a backing-off heartbeat until dismissal.`);
+
+n(`start`, `analyticsServer`, 7, `startAnalyticsServer`, `(config: ServiceConfig) => Promise<void>`,
+    `Starts the IP service, applies the stats config and starts the stats runtime.`);
+
+n(`stats`, `trafficData`, 46, `trafficData`, `TrafficData`,
+    `Daily traffic cache, keyed by date and page.`);
+n(`stats`, `sessionIndex`, 48, `sessionIndex`, `SessionIndex`,
+    `First-visit index per date, page and session.`);
+n(`stats`, `validURI`, 49, `validURI`, `(uri: string) => string`,
+    `Rejects corrupt URIs and trims long ones to 150 characters.`);
+n(`stats`, `readStats`, 59, `readStats`, `(date: string) => TrafficDataDay`,
+    `Loads one day into memory and stamps its last-read time.`);
+n(`stats`, `saveStats`, 70, `saveStats`, `() => void`,
+    `Flushes today's traffic and evicts days idle beyond the TTL.`);
+n(`stats`, `getSessionIndex`, 91, `getSessionIndex`, `(date, uri, visits) => Map<string, number>`,
+    `Indexes the first visit of each session per page.`);
+n(`stats`, `recordStats`, 104, `recordStats`, `({ ipRange, ips, data }) => void`,
+    `Validates a payload and appends or updates it in today's traffic file.`);
+n(`stats`, `combineStats`, 172, `combineStats`, `(days: string[]) => TrafficDataDay`,
+    `Merges the requested days into one page-keyed traffic map.`);
+n(`stats`, `compareDateStrings`, 186, `compareDateStrings`, `({ startDay, endDay? }) => string[]`,
+    `Builds the current and previous period date lists.`);
+n(`stats`, `compareStats`, 224, `compareStats`, `({ startDay, endDay?, includeRaw? }) => reports`,
+    `Analyses the current period against the previous one.`);
+n(`stats`, `compare24hr`, 246, `compare24hr`, `(includeRaw = false) => reports`,
+    `Buckets the last 48 hours into two 30-minute-resolution reports.`);
+n(`stats`, `getURIAlias`, 303, `getURIAlias`, `(uri: string) => string`,
+    `Maps a URI to its configured display alias.`);
+n(`stats`, `getPeriodStr`, 309, `getPeriodStr`, `({ num, endTime? }) => string`,
+    `Joins the last num days as one date string.`);
+n(`stats`, `statsPeriodStr`, 320, `statsPeriodStr`, `({ days, endTime? }) => { thisPeriod, prvPeriod }`,
+    `Produces the two comma-separated date strings for a period pair.`);
+n(`stats`, `statsAddOne`, 351, `statsAddOne`, `({ typeName, visitsObj, visitorsObj, visitId }) => void`,
+    `Adds one visit and one visitor to a dimension tally.`);
+n(`stats`, `formatVisits`, 367, `formatVisits`, `({ visitors, visits }) => VisitorVisitsType[]`,
+    `Turns a visitor map into a sorted [name, visitors, visits] list.`);
+n(`stats`, `freqVisits`, 384, `freqVisits`, `({ visitorsCount, freqVisitors }) => string[]`,
+    `Summarises repeat visitors that come back on more than three days.`);
+n(`stats`, `chartSeries`, 457, `chartSeries`, `({ timeVisits, timeVisitors, resolution, days }) => charts`,
+    `Buckets visits and visitors into a fixed number of chart points.`);
+n(`stats`, `tagAccumulator`, 505, `tagAccumulator`, `() => TagMetricAccumulator`,
+    `Creates empty per-tag counters for clicks or in-views.`);
+n(`stats`, `tagVisitAdd`, 515, `tagVisitAdd`, `({ tagTotals, tag, visitData, visitId, deviceType }) => void`,
+    `Folds one interaction event into its tag's totals.`);
+n(`stats`, `buildTagMetrics`, 567, `buildTagMetrics`, `({ tagTotals, dateReqStr, resolution }) => StatsTagMetricSets`,
+    `Finalises counters into per-tag totals, countries, devices and charts.`);
+n(`stats`, `analyseStats`, 607, `analyseStats`, `(params: StatsReqParams) => StatsAnalysisResult`,
+    `Filters spam and aggregates pages, countries, devices, charts, tags and repeats.`);
+n(`stats`, `configStats`, 1013, `configStats`, `(config: StatsConfig) => void`,
+    `Copies the stats config into the shared runtime config.`);
+n(`stats`, `startStats`, 1021, `startStats`, `() => void`,
+    `Ensures the traffic folder exists and flushes it every 15 seconds.`);
+
+n(`ip`, `ipStart`, 15, `ipStart`, `({ ipRangeRefreshInterval?, ipLimitResetInterval? }) => Promise<void>`,
+    `Loads the cached ranges, fetches them if empty and schedules refresh and reset.`);
+
+n(`range`, `ipCountryDataUpdate`, 7, `ipCountryDataUpdate`, `() => Promise<IPRange[]>`,
+    `Streams the IPv4 range CSV and parses it into sorted ranges.`);
+
+n(`analyse`, `ipNumericalValue`, 7, `ipNumericalValue`, `(ip: string) => number`,
+    `Converts a dotted IPv4 address to one number.`);
+n(`analyse`, `ipArray`, 15, `ipArray`, `(ips: string) => string[]`,
+    `Splits a proxy list into individual addresses.`);
+n(`analyse`, `ipRangeSort`, 23, `ipRangeSort`, `(ipRange: IPRange[]) => IPRange[]`,
+    `Drops bad rows and sorts ranges by start number once.`);
+n(`analyse`, `ipRangeIndex`, 33, `ipRangeIndex`, `(ipRange, num) => number`,
+    `Binary-searches the greatest start number not above the address.`);
+n(`analyse`, `ipCountryCode`, 45, `ipCountryCode`, `({ code?, ips, ipRange }) => CountryCode`,
+    `Resolves the visitor country from the payload or the IP range.`);
+
+n(`manage`, `ipResetLimits`, 10, `ipResetLimits`, `() => IPList`,
+    `Creates empty priority, white, black and general lists.`);
+n(`manage`, `ipCheck`, 23, `ipCheck`, `(ips: string) => 1 | 0`,
+    `Applies rate limits and blacklists an IP that exceeds the general limit.`);
+n(`manage`, `ipWhiteList`, 49, `ipWhiteList`, `(ips: string) => void`,
+    `Increments the white-list counter for each address.`);
+n(`manage`, `ipPriorityList`, 61, `ipPriorityList`, `(ips: string) => void`,
+    `Increments the priority counter for each address.`);
+n(`manage`, `ipData`, 72, `ipData`, `IPData`,
+    `Shared in-memory IP lists and the loaded country ranges.`);
+n(`manage`, `ipRangeUpdate`, 76, `ipRangeUpdate`, `() => Promise<void>`,
+    `Downloads new ranges, keeps them in memory and stores them as JSON.`);
+n(`manage`, `ipListReset`, 85, `ipListReset`, `() => void`,
+    `Clears the rate-limit counters.`);
+
+n(`constants`, `ipSourceUrl`, 10, `ipSourceUrl`, `string`,
+    `jsDelivr URL of the dbip country range CSV.`);
+n(`constants`, `unknownCountryCode`, 12, `unknownCountryCode`, `CountryCode`,
+    `Country used when nothing resolves.`);
+n(`constants`, `ipRateLimits`, 14, `ipRateLimits`, `RateLimits`,
+    `Default general, white-list and priority thresholds.`);
+n(`constants`, `checkInterval`, 19, `checkInterval`, `number`,
+    `Default browser heartbeat, five seconds.`);
+n(`constants`, `checkIntervalMax`, 20, `checkIntervalMax`, `number`,
+    `Ceiling for the backing-off browser heartbeat.`);
+n(`constants`, `trafficDataCacheTtl`, 22, `trafficDataCacheTtl`, `number`,
+    `Idle time after which a cached day is dropped.`);
+n(`constants`, `uriCorrupt`, 23, `uriCorrupt`, `RegExp`,
+    `Rejects URIs with a colon, percent, space or .html.`);
+n(`constants`, `statsConfig`, 24, `statsConfig`, `StatsConfig`,
+    `Live stats settings: folder, domain, excludes, engines and aliases.`);
+n(`constants`, `webConfig`, 31, `webConfig`, `WebConfig`,
+    `Live browser settings.`);
+
+n(`countries`, `countriesCodes`, 1, `countriesCodes`, `Record<string, 1>`,
+    `Lookup of valid ISO country codes.`);
+
+n(`statsTypes`, `StatsDevice`, 4, `StatsDevice`, `{ mobile, desktop }`,
+    `Device enum derived from the window width.`);
+n(`statsTypes`, `StatsDeviceType`, 9, `StatsDeviceType`, `keyof typeof StatsDevice`,
+    `Union of the two device names.`);
+n(`statsTypes`, `StatsDeviceObj`, 11, `StatsDeviceObj<T>`, `{ [K in StatsDevice]: T }`,
+    `One value per device.`);
+n(`statsTypes`, `DeviceWidthHeight`, 15, `DeviceWidthHeight`, `[number, number]`,
+    `Rounded viewport width and height.`);
+n(`statsTypes`, `PageDeviceDimensions`, 17, `PageDeviceDimensions`, `{ [page]: DeviceWidthHeight[] }`,
+    `Device dimensions grouped by page.`);
+n(`statsTypes`, `StatsEventType`, 51, `StatsEventType`, `{ pageview, click, inview }`,
+    `The three tracked event kinds.`);
+n(`statsTypes`, `RecordEventPageViewInput`, 58, `RecordEventPageViewInput`, `{ logged?, eventType, uriOverride? }`,
+    `Pageview input for recordEvent.`);
+n(`statsTypes`, `RecordEventInteractionInput`, 67, `RecordEventInteractionInput`, `{ logged?, eventType, uriOverride?, tag }`,
+    `Click or in-view input; the tag is required.`);
+n(`statsTypes`, `PageVisitRecord`, 78, `PageVisitRecord`, `PageVisitBasics + visit fields`,
+    `One stored visit with event, dimensions, referrer, duration and country.`);
+n(`statsTypes`, `PageVisitPayload`, 96, `PageVisitPayload`, `PageVisitRecord & { uri }`,
+    `What the browser hands to the record callback.`);
+n(`statsTypes`, `PageVisitInitiation`, 99, `PageVisitInitiation`, `PageVisitBasics & { uri }`,
+    `Local visit basics used while capturing.`);
+n(`statsTypes`, `TrafficDataDay`, 101, `TrafficDataDay`, `{ [page]: PageVisitRecord[] }`,
+    `One day of visits keyed by page URI.`);
+n(`statsTypes`, `TrafficData`, 105, `TrafficData`, `{ [date]: TrafficDataDay }`,
+    `Daily traffic held in memory.`);
+n(`statsTypes`, `PageTrafficData`, 125, `PageTrafficData`, `PageTrafficDataBasics`,
+    `Per-page counters before finalisation.`);
+n(`statsTypes`, `PageTrafficDataFinal`, 128, `PageTrafficDataFinal`, `basics + durMean + verifiedVisits`,
+    `Per-page counters with the filtered mean duration.`);
+n(`statsTypes`, `PageTrafficDataObj`, 135, `PageTrafficDataObj`, `{ [page]: PageTrafficData }`,
+    `Per-page map of counters.`);
+n(`statsTypes`, `PageTrafficDataObjFinal`, 139, `PageTrafficDataObjFinal`, `{ [page]: PageTrafficDataObjFinal }`,
+    `Per-page map of finalised counters.`);
+n(`statsTypes`, `VisitorVisitsType`, 143, `VisitorVisitsType`, `[string, number, number]`,
+    `[name, visitors, visits] tuple used in reports.`);
+n(`statsTypes`, `StatsTagMetricSet`, 163, `StatsTagMetricSet`, `{ total, countries, devices, charts, visitors }`,
+    `Aggregated metrics for one interaction tag.`);
+n(`statsTypes`, `StatsTagMetricSets`, 174, `StatsTagMetricSets`, `{ [tag]: StatsTagMetricSet }`,
+    `Interaction metrics grouped by tag.`);
+n(`statsTypes`, `StatsAnalysisResult`, 176, `StatsAnalysisResult`, `{ total, pages, countries, devices, charts ... }`,
+    `Full report returned by analyseStats.`);
+n(`statsTypes`, `StatsReqParams`, 192, `StatsReqParams`, `{ dayData, dateReqStr, limits, resolution? ... }`,
+    `Input accepted by analyseStats.`);
+n(`statsTypes`, `StatsFreqVisitors`, 206, `StatsFreqVisitors`, `{ days, hasAccount, screenSize, source, country, pages }`,
+    `Summary row for one repeat visitor.`);
+n(`statsTypes`, `StatsFreqVisits`, 215, `StatsFreqVisits`, `{ [visitId]: { [page]: PageVisitRecord[] } }`,
+    `Repeat-visitor input collected while analysing.`);
+n(`statsTypes`, `StatsConfig`, 221, `StatsConfig`, `{ trafficDir, thisDomain, excludeURIs, searchEngines, uriAlias }`,
+    `Server storage and report settings.`);
+
+n(`ipTypes`, `IPList`, 5, `IPList`, `{ p, w, b, l }`,
+    `Priority, white, black and general IP lists.`);
+n(`ipTypes`, `IPCountryRange`, 17, `IPCountryRange`, `{ start_ip_num, end_ip_num, country }`,
+    `Raw CSV row from the range database.`);
+n(`ipTypes`, `IPRange`, 24, `IPRange`, `[number, number, CountryCode]`,
+    `Numeric start, numeric end and country.`);
+n(`ipTypes`, `IPData`, 26, `IPData`, `{ ipList, ipRange }`,
+    `Shared IP state.`);
+n(`ipTypes`, `IPConfig`, 33, `IPConfig`, `{ ipRangeRefreshInterval?, ipLimitResetInterval? }`,
+    `IP service intervals.`);
+n(`ipTypes`, `RateLimits`, 41, `RateLimits`, `{ generalAccess, whiteListed, priorityAccess }`,
+    `Rate-limit thresholds.`);
+
+n(`webTypes`, `WebConfig`, 4, `WebConfig`, `{ checkInterval? }`,
+    `Browser heartbeat setting.`);
+n(`webTypes`, `RecordCallback`, 10, `RecordCallback`, `(data: PageVisitPayload, final?: boolean) => any`,
+    `Host handler for each payload; final marks the dismissal send.`);
+
+n(`countryTypes`, `CountryCode`, 3, `CountryCode`, `keyof typeof countriesCodes`,
+    `Every accepted ISO country code.`);
+
+n(`generalTypes`, `ServiceConfig`, 4, `ServiceConfig`, `IPConfig & StatsConfig`,
+    `Everything startAnalyticsServer accepts.`);
+
+n(`pkg`, `entries`, 4, `entry points`, `main · module · browser · types`,
+    `Publishes the Node bundle, the browser bundle and the declarations.`);
+n(`pkg`, `scripts`, 8, `build script`, `webpack`,
+    `The one command that produces dist.`);
+
+n(`webpack`, `common`, 8, `commonConfig`, `Configuration`,
+    `Shared TypeScript, terser, banner and tree-shaking settings.`);
+n(`webpack`, `browserBuild`, 44, `browser build`, `UMD · web`,
+    `Bundles src/browser.ts as the dsAnalytics global.`);
+n(`webpack`, `nodeBuild`, 60, `node build`, `CommonJS · node18`,
+    `Bundles src/index.ts for Node with the bundle analyzer.`);
+
+// Host and entries.
+e(`host.app`, `entry.public`, `call`);
+e(`host.app`, `browser.public`, `call`);
+e(`web.webAnalytics`, `host.app`, `event`);
+
+e(`entry.public`, `browser.public`, `call`);
+e(`entry.public`, `start.analyticsServer`, `call`);
+e(`entry.public`, `stats.recordStats`, `call`);
+e(`entry.public`, `stats.analyseStats`, `call`);
+e(`entry.public`, `stats.compareStats`, `call`);
+e(`entry.public`, `stats.compare24hr`, `call`);
+e(`entry.public`, `manage.ipCheck`, `call`);
+e(`entry.public`, `manage.ipRangeUpdate`, `call`);
+e(`entry.public`, `analyse.ipCountryCode`, `call`);
+e(`entry.public`, `ip.ipStart`, `call`);
+
+e(`browser.public`, `web.webAnalytics`, `call`);
+e(`browser.public`, `web.recordEvent`, `call`);
+e(`browser.public`, `web.setWebConfig`, `call`);
+e(`browser.public`, `web.webData`, `call`);
+e(`browser.public`, `web.getCountryCode`, `call`);
+
+// Server start.
+e(`start.analyticsServer`, `ip.ipStart`, `call`);
+e(`start.analyticsServer`, `stats.configStats`, `call`);
+e(`start.analyticsServer`, `stats.startStats`, `call`);
+
+// Browser capture.
+e(`web.setWebConfig`, `constants.webConfig`, `store`);
+e(`web.getCountryCode`, `countries.countriesCodes`, `call`);
+e(`web.getCountryCode`, `constants.unknownCountryCode`, `call`);
+e(`web.webData`, `web.tempStatsId`, `call`);
+e(`web.webData`, `web.statsBasics`, `call`);
+e(`web.webData`, `web.getReferrer`, `call`);
+e(`web.webData`, `web.getCountryCode`, `call`);
+e(`web.recordEvent`, `web.webData`, `call`);
+e(`web.webAnalytics`, `web.webData`, `call`);
+e(`web.webAnalytics`, `web.statsBasics`, `inner`);
+e(`web.webAnalytics`, `constants.webConfig`, `call`);
+e(`web.webAnalytics`, `constants.checkInterval`, `call`);
+e(`web.webAnalytics`, `constants.checkIntervalMax`, `call`);
+e(`web.statsBasics`, `web.getPathName`, `call`);
+
+// Traffic pipeline.
+e(`stats.validURI`, `constants.uriCorrupt`, `call`);
+e(`stats.readStats`, `stats.trafficData`, `store`);
+e(`stats.readStats`, `constants.statsConfig`, `call`);
+e(`stats.saveStats`, `stats.readStats`, `call`);
+e(`stats.saveStats`, `stats.trafficData`, `store`);
+e(`stats.saveStats`, `constants.trafficDataCacheTtl`, `call`);
+e(`stats.getSessionIndex`, `stats.sessionIndex`, `store`);
+e(`stats.recordStats`, `stats.validURI`, `call`);
+e(`stats.recordStats`, `stats.readStats`, `call`);
+e(`stats.recordStats`, `stats.getSessionIndex`, `call`);
+e(`stats.recordStats`, `analyse.ipCountryCode`, `call`);
+e(`stats.combineStats`, `stats.readStats`, `call`);
+e(`stats.compareDateStrings`, `stats.statsPeriodStr`, `call`);
+e(`stats.statsPeriodStr`, `stats.getPeriodStr`, `call`);
+e(`stats.compareStats`, `stats.compareDateStrings`, `call`);
+e(`stats.compareStats`, `stats.combineStats`, `call`);
+e(`stats.compareStats`, `stats.analyseStats`, `call`);
+e(`stats.compare24hr`, `stats.readStats`, `call`);
+e(`stats.compare24hr`, `stats.analyseStats`, `call`);
+e(`stats.getURIAlias`, `constants.statsConfig`, `call`);
+e(`stats.analyseStats`, `stats.getURIAlias`, `call`);
+e(`stats.analyseStats`, `stats.statsAddOne`, `call`);
+e(`stats.analyseStats`, `stats.tagVisitAdd`, `call`);
+e(`stats.analyseStats`, `stats.chartSeries`, `call`);
+e(`stats.analyseStats`, `stats.formatVisits`, `call`);
+e(`stats.analyseStats`, `stats.buildTagMetrics`, `call`);
+e(`stats.analyseStats`, `stats.freqVisits`, `call`);
+e(`stats.analyseStats`, `stats.tagAccumulator`, `inner`);
+e(`stats.analyseStats`, `constants.statsConfig`, `call`);
+e(`stats.analyseStats`, `countries.countriesCodes`, `call`);
+e(`stats.analyseStats`, `constants.unknownCountryCode`, `call`);
+e(`stats.freqVisits`, `constants.statsConfig`, `call`);
+e(`stats.buildTagMetrics`, `stats.chartSeries`, `call`);
+e(`stats.buildTagMetrics`, `stats.formatVisits`, `call`);
+e(`stats.tagVisitAdd`, `stats.statsAddOne`, `call`);
+e(`stats.tagVisitAdd`, `countries.countriesCodes`, `call`);
+e(`stats.configStats`, `constants.statsConfig`, `store`);
+e(`stats.startStats`, `stats.saveStats`, `event`);
+e(`stats.startStats`, `constants.statsConfig`, `call`);
+
+// IP service.
+e(`ip.ipStart`, `manage.ipRangeUpdate`, `call`);
+e(`ip.ipStart`, `manage.ipListReset`, `call`);
+e(`ip.ipStart`, `analyse.ipRangeSort`, `call`);
+e(`ip.ipStart`, `manage.ipData`, `store`);
+e(`manage.ipRangeUpdate`, `range.ipCountryDataUpdate`, `call`);
+e(`manage.ipRangeUpdate`, `manage.ipData`, `store`);
+e(`range.ipCountryDataUpdate`, `analyse.ipRangeSort`, `call`);
+e(`range.ipCountryDataUpdate`, `constants.ipSourceUrl`, `store`);
+e(`manage.ipCheck`, `analyse.ipArray`, `call`);
+e(`manage.ipCheck`, `constants.ipRateLimits`, `call`);
+e(`manage.ipCheck`, `manage.ipData`, `store`);
+e(`manage.ipWhiteList`, `analyse.ipArray`, `call`);
+e(`manage.ipPriorityList`, `analyse.ipArray`, `call`);
+e(`analyse.ipCountryCode`, `analyse.ipArray`, `call`);
+e(`analyse.ipCountryCode`, `analyse.ipNumericalValue`, `call`);
+e(`analyse.ipCountryCode`, `analyse.ipRangeSort`, `call`);
+e(`analyse.ipCountryCode`, `analyse.ipRangeIndex`, `call`);
+e(`analyse.ipCountryCode`, `constants.unknownCountryCode`, `call`);
+e(`analyse.ipCountryCode`, `countries.countriesCodes`, `call`);
+
+// Types.
+e(`webTypes.WebConfig`, `constants.webConfig`, `type`);
+e(`webTypes.RecordCallback`, `statsTypes.PageVisitPayload`, `type`);
+e(`statsTypes.PageVisitPayload`, `statsTypes.PageVisitRecord`, `type`);
+e(`statsTypes.PageVisitRecord`, `statsTypes.StatsEventType`, `type`);
+e(`statsTypes.RecordEventPageViewInput`, `statsTypes.StatsEventType`, `type`);
+e(`statsTypes.RecordEventInteractionInput`, `statsTypes.StatsEventType`, `type`);
+e(`statsTypes.StatsTagMetricSets`, `statsTypes.StatsTagMetricSet`, `type`);
+e(`statsTypes.StatsAnalysisResult`, `statsTypes.StatsTagMetricSets`, `type`);
+e(`statsTypes.StatsAnalysisResult`, `statsTypes.PageTrafficDataFinal`, `type`);
+e(`statsTypes.StatsReqParams`, `statsTypes.TrafficDataDay`, `type`);
+e(`statsTypes.TrafficData`, `statsTypes.TrafficDataDay`, `type`);
+e(`statsTypes.PageTrafficData`, `statsTypes.StatsDeviceObj`, `type`);
+e(`statsTypes.PageTrafficDataFinal`, `statsTypes.PageTrafficData`, `type`);
+e(`statsTypes.PageTrafficDataObj`, `statsTypes.PageTrafficData`, `type`);
+e(`statsTypes.PageDeviceDimensions`, `statsTypes.DeviceWidthHeight`, `type`);
+e(`statsTypes.StatsDeviceObj`, `statsTypes.StatsDevice`, `type`);
+e(`statsTypes.StatsDeviceType`, `statsTypes.StatsDevice`, `type`);
+e(`statsTypes.StatsFreqVisits`, `statsTypes.PageVisitRecord`, `type`);
+e(`statsTypes.StatsConfig`, `constants.statsConfig`, `type`);
+e(`ipTypes.RateLimits`, `constants.ipRateLimits`, `type`);
+e(`ipTypes.IPData`, `ipTypes.IPList`, `type`);
+e(`ipTypes.IPData`, `ipTypes.IPRange`, `type`);
+e(`countryTypes.CountryCode`, `constants.unknownCountryCode`, `type`);
+e(`generalTypes.ServiceConfig`, `statsTypes.StatsConfig`, `type`);
+e(`generalTypes.ServiceConfig`, `ipTypes.IPConfig`, `type`);
+
+// Build.
+e(`pkg.scripts`, `webpack.browserBuild`, `build`);
+e(`pkg.scripts`, `webpack.nodeBuild`, `build`);
+e(`webpack.browserBuild`, `browser.public`, `build`);
+e(`webpack.nodeBuild`, `entry.public`, `build`);
+
+STATES.push({
+    title: `Browser lifecycle`,
+    viewBox: `0 0 296 96`,
+    boxes: [
+        { x: 8, y: 20, w: 70, label: `running` },
+        { x: 118, y: 20, w: 64, label: `hidden` },
+        { x: 222, y: 20, w: 62, label: `dismissed` },
+    ],
+    arrows: [
+        { d: `M78,32 L118,32`, label: `hidden`, x: 82, y: 26 },
+        { d: `M118,44 C96,74 52,74 30,44`, label: `visible`, x: 64, y: 84 },
+        { d: `M182,32 L222,32`, label: `pagehide`, x: 184, y: 26 },
+        { d: `M43,20 C110,2 200,2 253,20`, label: `pagehide · final`, x: 116, y: 12 },
+    ],
+});
+
+FLOWS.visit = {
+    title: `one page visit end to end`,
+    steps: [
+        step([`host.app`, `browser.public`],
+            ` The page loads the UMD bundle and calls webAnalytics with a record callback.`),
+        step([`web.webAnalytics`, `web.webData`],
+            ` Build the first pageview: session, timestamp, URI, screen, referrer and country.`),
+        step([`web.webAnalytics`, `host.app`],
+            ` Hand each payload to the callback; page dismissal sends one final payload.`),
+        step([`entry.public`, `start.analyticsServer`],
+            ` On the server, startAnalyticsServer starts the IP service and the stats runtime once.`),
+        step([`stats.recordStats`, `analyse.ipCountryCode`],
+            ` recordStats validates the URI and resolves the visitor country from the IP range.`),
+        step([`stats.readStats`, `stats.saveStats`],
+            ` Visits are appended in memory and flushed to the daily traffic JSON file.`),
+        step([`stats.compareStats`, `stats.analyseStats`],
+            ` A report call combines the requested days and aggregates pages, countries, devices, charts and tags.`),
+    ],
+};
+
+// DATA END
+
+(() => {
+    const FILES_BY_ID = new Map(FILES.map(file => [file.id, file]));
+    const NODE_BY_ID = new Map(NODES.map(node => [node.id, node]));
+    const SHORT = new Map();
+    for (const node of NODES) {
+        const key = node.id.split(`.`).pop();
+        SHORT.set(key, SHORT.has(key) ? null : node);
+    }
+    const find = key => NODE_BY_ID.get(key) || SHORT.get(key) || null;
+    const LINKS = EDGES.map(edge => {
+        const a = find(edge.from);
+        const b = find(edge.to);
+        return a && b ? { a: a.id, b: b.id, kind: edge.kind } : null;
+    }).filter(Boolean);
+
+    const NEAR = new Map(NODES.map(node => [node.id, new Set()]));
+    for (const link of LINKS) {
+        NEAR.get(link.a).add(link.b);
+        NEAR.get(link.b).add(link.a);
+    }
+
+    const BAND_INDEX = new Map(BANDS.map((band, index) => [band.id, index]));
+    const bandOf = id => BAND_INDEX.get(FILES_BY_ID.get(NODE_BY_ID.get(id).file).band);
+
+    const COL_W = 208;
+    const COLS_MAX = 8;
+    const GAP = { row: 6, col: 12, file: 30, band: 38, pad: 26, head: 24 };
+
+    const canvas = document.getElementById(`canvas`);
+    const svg = document.getElementById(`edges`);
+    const viewport = document.getElementById(`viewport`);
+    const panelMain = document.getElementById(`panel-main`);
+    const stateBox = document.getElementById(`state-box`);
+    const search = document.getElementById(`search`);
+    const zoomLabel = document.getElementById(`zoom`);
+    const flowButton = document.getElementById(`flow`);
+    const bandsBar = document.getElementById(`bands`);
+    const meta = document.getElementById(`meta`);
+
+    const state = { scale: 1, x: 0, y: 0 };
+    const pos = new Map();
+    const bandBox = new Map();
+    let size = { w: 0, h: 0 };
+    let preview = null;
+    let selected = null;
+    let flow = null;
+    let query = ``;
+
+    const esc = value => `${value}`.replace(/&/g, `&amp;`).replace(/</g, `&lt;`)
+        .replace(/>/g, `&gt;`);
+
+    const nodeEl = (node, band) => {
+        const el = document.createElement(`div`);
+        el.className = `node`;
+        el.tabIndex = 0;
+        el.dataset.id = node.id;
+        el.dataset.band = band;
+        el.innerHTML = `<span class="no"></span>`
+            + `<div class="lbl">${esc(node.label)}</div>`
+            + `<div class="sig">${esc(node.sig)}</div>`
+            + `<span class="ln">${node.line ? `L` + node.line : ``}</span>`;
+        return el;
+    };
+
+    const buildCanvas = () => {
+        canvas.querySelectorAll(`.band, .file, .wash`).forEach(el => el.remove());
+        pos.clear();
+        bandBox.clear();
+        let cursorY = GAP.pad;
+        let maxRight = 0;
+        for (const band of BANDS) {
+            const title = document.createElement(`div`);
+            title.className = `band`;
+            title.style.top = `${cursorY}px`;
+            const count = NODES.filter(node =>
+                FILES_BY_ID.get(node.file).band === band.id).length;
+            title.innerHTML = `<b>${esc(band.title)}</b><span>${esc(band.hint)}</span>`
+                + `<span>${count} nodes</span>`;
+            canvas.appendChild(title);
+            const wash = document.createElement(`div`);
+            wash.className = `wash`;
+            wash.dataset.band = band.id;
+            wash.style.top = `${cursorY}px`;
+            wash.style.setProperty(`--band`, band.color || `#8a7a5f`);
+            canvas.appendChild(wash);
+            let cursorX = GAP.pad;
+            const placed = [];
+            for (const file of FILES.filter(item => item.band === band.id)) {
+                const nodes = NODES.filter(node => node.file === file.id);
+                const wrap = document.createElement(`div`);
+                wrap.className = `file`;
+                wrap.style.left = `${cursorX}px`;
+                wrap.style.top = `${cursorY + GAP.head}px`;
+                wrap.style.setProperty(`--band`, band.color || `#8a7a5f`);
+                const head = document.createElement(`div`);
+                head.className = `file-head`;
+                head.dataset.band = band.id;
+                head.innerHTML = `<b>${esc(file.label)}</b><i>${esc(file.path)}</i>`;
+                wrap.appendChild(head);
+                const cols = document.createElement(`div`);
+                cols.className = `file-cols`;
+                for (let i = 0; i < nodes.length; i += COLS_MAX) {
+                    const col = document.createElement(`div`);
+                    col.className = `col`;
+                    for (const node of nodes.slice(i, i + COLS_MAX))
+                        col.appendChild(nodeEl(node, band.id));
+                    cols.appendChild(col);
+                }
+                const colCount = Math.ceil(nodes.length / COLS_MAX) || 1;
+                wrap.appendChild(cols);
+                canvas.appendChild(wrap);
+                placed.push({ wrap, file });
+                cursorX += colCount * COL_W + (colCount - 1) * GAP.col + GAP.file;
+            }
+            let bandH = 0;
+            let bandRight = GAP.pad;
+            for (const item of placed) bandH = Math.max(bandH, item.wrap.offsetHeight);
+            for (const item of placed) {
+                const left = item.wrap.offsetLeft;
+                const top = item.wrap.offsetTop;
+                const nodes = item.wrap.querySelectorAll(`.node`);
+                for (const el of nodes) {
+                    pos.set(el.dataset.id, {
+                        x: left + el.offsetLeft,
+                        y: top + el.offsetTop,
+                        w: el.offsetWidth,
+                        h: el.offsetHeight,
+                    });
+                }
+                maxRight = Math.max(maxRight, left + item.wrap.offsetWidth);
+                bandRight = Math.max(bandRight, left + item.wrap.offsetWidth);
+            }
+            wash.style.height = `${GAP.head + bandH + 12}px`;
+            bandBox.set(band.id, { y: cursorY, h: GAP.head + bandH, w: bandRight + GAP.pad });
+            cursorY += GAP.head + bandH + GAP.band;
+        }
+        size = {
+            w: Math.max(52, maxRight + GAP.pad),
+            h: Math.max(52, cursorY - GAP.band + GAP.pad),
+        };
+        canvas.style.width = `${size.w}px`;
+        canvas.style.height = `${size.h}px`;
+        svg.setAttribute(`width`, size.w);
+        svg.setAttribute(`height`, size.h);
+        canvas.querySelectorAll(`.band`).forEach(el => {
+            el.style.left = `10px`;
+            el.style.width = `${size.w - 20}px`;
+        });
+        canvas.querySelectorAll(`.wash`).forEach(el => {
+            el.style.width = `${size.w - 12}px`;
+        });
+    };
+
+    const ARROW = {
+        build: `#6f9464`,
+        call: `#5579a4`,
+        event: `#c08a4a`,
+        store: `#9878ad`,
+        type: `#a49b8c`,
+        inner: `#b9ab95`,
+    };
+
+    const shape = (a, b) => {
+        const pa = pos.get(a);
+        const pb = pos.get(b);
+        const vertical = bandOf(a) !== bandOf(b);
+        if (vertical) {
+            const down = pb.y > pa.y;
+            const p1 = { x: pa.x + pa.w / 2, y: down ? pa.y + pa.h : pa.y };
+            const p2 = { x: pb.x + pb.w / 2, y: down ? pb.y : pb.y + pb.h };
+            const d = Math.max(30, Math.abs(p2.y - p1.y) * 0.42) * (down ? 1 : -1);
+            return `M${p1.x},${p1.y}`
+                + `C${p1.x},${p1.y + d} ${p2.x},${p2.y - d} ${p2.x},${p2.y}`;
+        }
+        const right = pb.x > pa.x;
+        const p1 = { x: right ? pa.x + pa.w : pa.x, y: pa.y + pa.h / 2 };
+        const p2 = { x: right ? pb.x : pb.x + pb.w, y: pb.y + pb.h / 2 };
+        const d = Math.max(30, Math.abs(p2.x - p1.x) * 0.42) * (right ? 1 : -1);
+        return `M${p1.x},${p1.y}`
+            + `C${p1.x + d},${p1.y} ${p2.x - d},${p2.y} ${p2.x},${p2.y}`;
+    };
+
+    const drawEdges = () => {
+        let out = `<defs>`;
+        for (const [kind, color] of Object.entries(ARROW)) {
+            out += `<marker id="ar-${kind}" viewBox="0 0 8 8" refX="7.4" refY="4"`
+                + ` markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">`
+                + `<path d="M0,0.7 L7.4,4 L0,7.3 Z" fill="${color}"></path></marker>`;
+        }
+        out += `</defs>`;
+        for (const link of LINKS) {
+            out += `<path class="edge k-${link.kind}" data-from="${link.a}"`
+                + ` data-to="${link.b}" marker-end="url(#ar-${link.kind})"`
+                + ` d="${shape(link.a, link.b)}"></path>`;
+        }
+        svg.innerHTML = out;
+    };
+
+    const apply = () => {
+        canvas.style.transform =
+            `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        zoomLabel.textContent = `${Math.round(state.scale * 100)}%`;
+    };
+
+    const fit = () => {
+        const rect = viewport.getBoundingClientRect();
+        const scale = Math.min((rect.width - 36) / size.w, (rect.height - 36) / size.h, 1);
+        state.scale = Math.max(0.16, scale);
+        state.x = (rect.width - size.w * state.scale) / 2;
+        state.y = (rect.height - size.h * state.scale) / 2;
+        apply();
+    };
+
+    const focusBand = id => {
+        const box = bandBox.get(id);
+        if (!box) return;
+        const rect = viewport.getBoundingClientRect();
+        const scale = Math.min((rect.width - 48) / box.w, (rect.height - 48) / box.h, 1.2);
+        state.scale = Math.max(0.2, scale);
+        state.x = (rect.width - box.w * state.scale) / 2;
+        state.y = (rect.height - box.h * state.scale) / 2 - box.y * state.scale;
+        apply();
+    };
+
+    const centerOn = id => {
+        const point = pos.get(id);
+        if (!point) return;
+        const rect = viewport.getBoundingClientRect();
+        state.scale = Math.min(1.25, Math.max(state.scale, 0.82));
+        state.x = rect.width / 2 - (point.x + point.w / 2) * state.scale;
+        state.y = rect.height / 2 - (point.y + point.h / 2) * state.scale;
+        apply();
+    };
+
+    const paint = () => {
+        const focus = preview || selected;
+        const around = focus ? NEAR.get(focus) : null;
+        document.querySelectorAll(`.node`).forEach(el => {
+            const id = el.dataset.id;
+            let lit = false;
+            let dim = false;
+            if (query) {
+                const node = NODE_BY_ID.get(id);
+                const hay = `${node.label} ${node.sig} ${node.id}`.toLowerCase();
+                lit = hay.includes(query);
+                dim = !lit;
+            } else if (flow) {
+                lit = flow.ids.has(id);
+                dim = !lit;
+            } else if (focus) {
+                lit = id === focus || around.has(id);
+                dim = !lit;
+            }
+            el.classList.toggle(`lit`, lit);
+            el.classList.toggle(`dim`, dim);
+            el.classList.toggle(`hit`, !!query && lit);
+            el.classList.toggle(`sel`, id === selected);
+            el.classList.toggle(`step`, !!(flow && flow.ids.has(id)));
+        });
+        svg.querySelectorAll(`.edge`).forEach(el => {
+            const from = el.dataset.from;
+            const to = el.dataset.to;
+            let lit = false;
+            let dim = false;
+            if (query) {
+                dim = true;
+            } else if (flow) {
+                lit = flow.links.has(`${from}>${to}`);
+                dim = !lit;
+            } else if (focus) {
+                lit = from === focus || to === focus;
+                dim = !lit;
+            }
+            el.classList.toggle(`lit`, lit);
+            el.classList.toggle(`dim`, dim);
+        });
+    };
+
+    const relations = id => {
+        const ins = new Map();
+        const outs = new Map();
+        const add = (map, key, kind) => {
+            if (!map.has(key)) map.set(key, new Set());
+            map.get(key).add(kind);
+        };
+        for (const link of LINKS) {
+            if (link.b === id) add(ins, link.a, link.kind);
+            if (link.a === id) add(outs, link.b, link.kind);
+        }
+        return { ins, outs };
+    };
+
+    const pathToRoot = id => {
+        const root = find(MAP.root);
+        if (!root) return [];
+        const target = root.id;
+        const prev = new Map([[id, null]]);
+        const queue = [id];
+        while (queue.length) {
+            const at = queue.shift();
+            if (at === target) break;
+            for (const link of LINKS) {
+                if (link.b !== at || prev.has(link.a)) continue;
+                prev.set(link.a, at);
+                queue.push(link.a);
+            }
+        }
+        if (!prev.has(target)) return [];
+        const chain = [];
+        let at = target;
+        while (at) {
+            chain.push(at);
+            at = prev.get(at);
+        }
+        return chain;
+    };
+
+    const stat = (label, value) =>
+        `<div><span>${label}</span><b>${value}</b></div>`;
+
+    const overview = () => {
+        const total = FILES.reduce((sum, file) => sum + file.loc, 0);
+        const list = BANDS.map(band => {
+            const count = NODES.filter(node =>
+                FILES_BY_ID.get(node.file).band === band.id).length;
+            return `<button data-band="${band.id}"`
+                + ` style="--band:${band.color || `#8a7a5f`}">`
+                + `<b>${esc(band.title)}</b>`
+                + `<span>${count} nodes · ${esc(band.hint)}</span></button>`;
+        }).join(``);
+        return `<h2>Overview</h2><div class="card"><div class="stats">`
+            + stat(`nodes`, NODES.length)
+            + stat(`relations`, LINKS.length)
+            + stat(`files`, FILES.length)
+            + stat(`lines`, `${(Math.round(total / 100) / 10)}k`)
+            + `</div></div>`
+            + (MAP.subtitle
+                ? `<div class="card empty" style="margin-top:8px">`
+                    + `${esc(MAP.subtitle)}</div>`
+                : ``)
+            + `<h2>Bands</h2><div class="card"><div class="bandlist">`
+            + (list || `<div class="empty">No band yet. Add BANDS between the`
+                + ` DATA markers.</div>`)
+            + `</div></div>`
+            + `<div class="card empty" style="margin-top:8px">`
+            + `Start from a band or search a name. Selecting a function here `
+            + `does not move the canvas.</div>`;
+    };
+
+    const linkButtons = map => [...map.entries()].map(([id, kinds]) => {
+        const node = NODE_BY_ID.get(id);
+        return `<button data-go="${id}">${esc(node.label)} `
+            + `<span>${[...kinds].join(` + `)} · ${node.file}</span></button>`;
+    }).join(``);
+
+    const nodePanel = id => {
+        const node = NODE_BY_ID.get(id);
+        const file = FILES_BY_ID.get(node.file);
+        const band = BANDS.find(item => item.id === file.band);
+        const root = find(MAP.root);
+        const { ins, outs } = relations(id);
+        const chain = pathToRoot(id);
+        const route = chain.length
+            ? chain.map(item => item === id
+                ? `<b>${esc(NODE_BY_ID.get(item).label)}</b>`
+                : esc(NODE_BY_ID.get(item).label)).join(` → `)
+            : `not reachable from the root`;
+        return `<h2>${esc(band.title)}</h2>`
+            + `<div class="card"><div class="path">${esc(file.path)}`
+            + `${node.line ? ` · L` + node.line : ``}</div>`
+            + `<p class="name">${esc(node.label)}</p>`
+            + `<div class="sig">${esc(node.sig)}</div>`
+            + (node.note ? `<div class="note">${esc(node.note)}</div>` : ``)
+            + `</div>`
+            + `<h2>Path to ${esc(root ? root.label : `the root`)}</h2>`
+            + `<div class="card"><div class="route">${route}</div></div>`
+            + `<h2>Called by ${ins.size}</h2><div class="card"><div class="rel">`
+            + (ins.size ? linkButtons(ins) : `<div class="empty">No caller</div>`)
+            + `</div></div>`
+            + `<h2>Calls ${outs.size}</h2><div class="card"><div class="rel">`
+            + (outs.size ? linkButtons(outs) : `<div class="empty">No callee</div>`)
+            + `</div></div>`
+            + `<h2>Jump</h2><div class="card"><div class="rel">`
+            + `<button data-band="${file.band}">Show the ${esc(band.id)} band</button>`
+            + `<button data-go="${id}">Center this function</button>`
+            + `</div></div>`;
+    };
+
+    const flowPanel = () => {
+        const items = flow.steps.map(step => {
+            const node = NODE_BY_ID.get(step.ids[0]);
+            return `<li data-go="${step.ids[0]}"><b>${esc(node.label)}</b>`
+                + `${esc(step.text)}</li>`;
+        }).join(``);
+        return `<h2>Flow · ${esc(flow.def.title)}</h2>`
+            + `<div class="card"><ol class="steps">${items}</ol></div>`
+            + `<div class="card empty" style="margin-top:8px">`
+            + `Click a step to pin its function. Press flow again to clear.</div>`;
+    };
+
+    const renderPanel = () => {
+        if (flow) panelMain.innerHTML = flowPanel();
+        else panelMain.innerHTML = selected ? nodePanel(selected) : overview();
+        document.getElementById(`panel`).scrollTop = 0;
+    };
+
+    const clearFlow = () => {
+        flow = null;
+        flowButton.classList.remove(`on`);
+        document.querySelectorAll(`.node .no`).forEach(el => {
+            el.textContent = ``;
+        });
+    };
+
+    const select = id => {
+        selected = id;
+        preview = null;
+        clearFlow();
+        renderPanel();
+        paint();
+    };
+
+    const startFlow = () => {
+        const def = FLOWS[MAP.flow];
+        if (!def) return;
+        const steps = def.steps.map(step => ({
+            text: step.text,
+            ids: step.ids.map(id => find(id).id),
+        }));
+        const ids = new Set();
+        const links = new Set();
+        let prev = null;
+        for (const step of steps) {
+            for (const id of step.ids) {
+                ids.add(id);
+                if (prev && prev !== id) links.add(`${prev}>${id}`);
+                prev = id;
+            }
+        }
+        flow = { def, steps, ids, links };
+        selected = null;
+        preview = null;
+        flowButton.classList.add(`on`);
+        const order = new Map();
+        steps.forEach((step, index) => step.ids.forEach(id => {
+            if (!order.has(id)) order.set(id, index + 1);
+        }));
+        document.querySelectorAll(`.node`).forEach(el => {
+            el.querySelector(`.no`).textContent = order.get(el.dataset.id) || ``;
+        });
+        renderPanel();
+        paint();
+    };
+
+    const resetSearch = () => {
+        query = ``;
+        search.value = ``;
+        paint();
+    };
+
+    const stateSvg = (machine, index) => {
+        const marker = `state-ar-${index}`;
+        const box = ({ x, y, w, label }) =>
+            `<rect x="${x}" y="${y}" width="${w}" height="24" rx="3"`
+            + ` fill="#fffdf7" stroke="#c9bda9"></rect>`
+            + `<text x="${x + w / 2}" y="${y + 16}" text-anchor="middle">${esc(label)}</text>`;
+        const arrow = ({ d, both, label, x, y }) =>
+            `<path class="state-arrow" d="${d}" marker-end="url(#${marker})"`
+            + `${both ? ` marker-start="url(#${marker})"` : ``}></path>`
+            + (label
+                ? `<text x="${x || 0}" y="${y || 0}" font-size="8">${esc(label)}</text>`
+                : ``);
+        return `<div class="state-title"${index ? ` style="margin-top:8px"` : ``}>`
+            + `${esc(machine.title)}</div>`
+            + `<svg viewBox="${machine.viewBox}" role="img"`
+            + ` aria-label="${esc(machine.title)}">`
+            + `<defs><marker id="${marker}" viewBox="0 0 8 8" refX="7" refY="4"`
+            + ` markerWidth="5" markerHeight="5" orient="auto-start-reverse">`
+            + `<path d="M0,0.7 L7,4 L0,7.3 Z" fill="#9b8f7c"></path></marker></defs>`
+            + (machine.boxes || []).map(box).join(``)
+            + (machine.arrows || []).map(arrow).join(``)
+            + `</svg>`;
+    };
+
+    const stateDiagrams = () => STATES.length
+        ? STATES.map(stateSvg).join(``)
+        : `<div class="empty">No state machine yet.</div>`;
+
+    const zoomAt = (factor, clientX, clientY) => {
+        const rect = viewport.getBoundingClientRect();
+        const mx = clientX - rect.left;
+        const my = clientY - rect.top;
+        const next = Math.min(2.4, Math.max(0.14, state.scale * factor));
+        const k = next / state.scale;
+        state.x = mx - (mx - state.x) * k;
+        state.y = my - (my - state.y) * k;
+        state.scale = next;
+        apply();
+    };
+
+    let drag = null;
+
+    viewport.addEventListener(`pointerdown`, event => {
+        if (event.button !== 0) return;
+        drag = { x: event.clientX, y: event.clientY, sx: state.x, sy: state.y, moved: 0 };
+        viewport.classList.add(`drag`);
+        try { viewport.setPointerCapture(event.pointerId); } catch { }
+    });
+
+    viewport.addEventListener(`pointermove`, event => {
+        if (!drag) return;
+        const dx = event.clientX - drag.x;
+        const dy = event.clientY - drag.y;
+        drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+        state.x = drag.sx + dx;
+        state.y = drag.sy + dy;
+        apply();
+    });
+
+    viewport.addEventListener(`pointerup`, event => {
+        if (!drag) return;
+        const moved = drag.moved;
+        drag = null;
+        viewport.classList.remove(`drag`);
+        try { viewport.releasePointerCapture(event.pointerId); } catch { }
+        if (moved > 4) return;
+        const el = event.target.closest(`.node`);
+        if (el) select(el.dataset.id);
+        else {
+            selected = null;
+            clearFlow();
+            renderPanel();
+            paint();
+        }
+    });
+
+    viewport.addEventListener(`wheel`, event => {
+        event.preventDefault();
+        zoomAt(Math.exp(-event.deltaY * 0.0014), event.clientX, event.clientY);
+    }, { passive: false });
+
+    canvas.addEventListener(`keydown`, event => {
+        if (event.key !== `Enter` && event.key !== ` `) return;
+        const el = event.target.closest(`.node`);
+        if (!el) return;
+        event.preventDefault();
+        select(el.dataset.id);
+        centerOn(el.dataset.id);
+    });
+
+    canvas.addEventListener(`mouseover`, event => {
+        const el = event.target.closest(`.node`);
+        if (!el) return;
+        if (el.contains(event.relatedTarget)) return;
+        preview = el.dataset.id;
+        paint();
+    });
+
+    canvas.addEventListener(`mouseout`, event => {
+        const el = event.target.closest(`.node`);
+        if (!el) return;
+        if (el.contains(event.relatedTarget)) return;
+        if (preview === el.dataset.id) preview = null;
+        paint();
+    });
+
+    panelMain.addEventListener(`click`, event => {
+        const go = event.target.closest(`[data-go]`);
+        if (go) {
+            select(go.dataset.go);
+            centerOn(go.dataset.go);
+            return;
+        }
+        const band = event.target.closest(`[data-band]`);
+        if (band) focusBand(band.dataset.band);
+    });
+
+    search.addEventListener(`input`, () => {
+        query = search.value.trim().toLowerCase();
+        if (query) {
+            selected = null;
+            clearFlow();
+            renderPanel();
+        }
+        paint();
+    });
+
+    flowButton.addEventListener(`click`, () => {
+        if (!FLOWS[MAP.flow]) return;
+        resetSearch();
+        if (flow) {
+            clearFlow();
+            selected = null;
+            renderPanel();
+            paint();
+        } else startFlow();
+    });
+
+    document.getElementById(`fit`).addEventListener(`click`, fit);
+    document.getElementById(`plus`).addEventListener(`click`, () => {
+        const rect = viewport.getBoundingClientRect();
+        zoomAt(1.25, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+    document.getElementById(`minus`).addEventListener(`click`, () => {
+        const rect = viewport.getBoundingClientRect();
+        zoomAt(0.8, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    });
+
+    document.addEventListener(`keydown`, event => {
+        if (event.key === `Escape`) {
+            resetSearch();
+            selected = null;
+            preview = null;
+            clearFlow();
+            renderPanel();
+            paint();
+        }
+    });
+
+    BANDS.forEach(band => {
+        const button = document.createElement(`button`);
+        button.textContent = band.id;
+        button.title = band.title;
+        button.dataset.band = band.id;
+        button.style.setProperty(`--band`, band.color || `#8a7a5f`);
+        button.addEventListener(`click`, () => focusBand(band.id));
+        bandsBar.appendChild(button);
+    });
+
+    const boot = () => {
+        if (MAP.name) {
+            document.querySelector(`.brand h1`).textContent = MAP.name;
+            document.title = `${MAP.name} · code structure`;
+        }
+        document.getElementById(`intro`).innerHTML = MAP.intro || ``;
+        if (!FLOWS[MAP.flow]) {
+            flowButton.disabled = true;
+            flowButton.title = `No flow defined`;
+        }
+        buildCanvas();
+        drawEdges();
+        stateBox.innerHTML = stateDiagrams();
+        renderPanel();
+        paint();
+        fit();
+        const total = FILES.reduce((sum, file) => sum + file.loc, 0);
+        meta.textContent = `${NODES.length} nodes · ${LINKS.length} relations · `
+            + `${FILES.length} files · ${(Math.round(total / 100) / 10)}k lines`;
+    };
+
+    if (document.readyState === `complete`) boot();
+    else window.addEventListener(`load`, boot, { once: true });
+})();
+</script>
+</body>
+</html>
