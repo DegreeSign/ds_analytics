@@ -10,7 +10,38 @@ ipSourceUrl: string,
 unknownCountryCode: CountryCode, 
 /** IP rate limits */
 ipRateLimits: RateLimits, checkInterval = 5000, checkIntervalMax: number, 
-/** Traffic cache TTL for eviction (5 minutes) */
-trafficDataCacheTtl: number, uriCorrupt: RegExp, // checks for : % space or .html
-statsConfig: StatsConfig, webConfig: WebConfig;
-export { ipSourceUrl, unknownCountryCode, CountryCode, countriesCodes, ipRateLimits, checkInterval, checkIntervalMax, trafficDataCacheTtl, uriCorrupt, statsConfig, webConfig, };
+/** Traffic cache TTL */
+trafficDataCacheTtl: number, 
+/** Control characters */
+controlCorrupt: RegExp, 
+/** Date key shape */
+dateKeyShape: RegExp, uriCorrupt: RegExp, // corrupt URI patterns
+/** Safe key charset */
+keyCorrupt: RegExp, 
+/** Object-corrupting keys */
+reservedKeys: string[], 
+/** Session id limit */
+sessionMaxLength = 64, 
+/** Stats id limit */
+statsIdMaxLength = 64, 
+/** Referrer limit */
+referrerMaxLength = 300, 
+/** Tag limit */
+tagMaxLength = 64, 
+/** Window dimension limit */
+dimensionMax = 8192, 
+/** Duration limit (seconds) */
+durationMax = 43200, 
+/** Visits per URI */
+visitsPerUriMax = 50000, 
+/** URIs per day */
+urisPerDayMax = 5000, 
+/** Visits per day */
+visitsPerDayMax = 200000, 
+/** Report days limit */
+reportDaysMax = 366, 
+/** Report resolution limit */
+reportResolutionMax = 1000, 
+/** Future timestamp drift */
+timestampFutureLimit = 60000, statsConfig: StatsConfig, webConfig: WebConfig;
+export { ipSourceUrl, unknownCountryCode, CountryCode, countriesCodes, ipRateLimits, checkInterval, checkIntervalMax, trafficDataCacheTtl, controlCorrupt, dateKeyShape, uriCorrupt, keyCorrupt, reservedKeys, sessionMaxLength, statsIdMaxLength, referrerMaxLength, tagMaxLength, dimensionMax, durationMax, visitsPerUriMax, urisPerDayMax, visitsPerDayMax, reportDaysMax, reportResolutionMax, timestampFutureLimit, statsConfig, webConfig, };

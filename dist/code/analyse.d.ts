@@ -5,6 +5,16 @@ declare const
 ipNumericalValue: (ip: string) => number, 
 /** IP array */
 ipArray: (ips: string) => string[], 
+/** Safe IP key */
+validIP: (ip: string) => boolean, 
+/** Parsed range limit */
+ipRangesMax = 1000000, 
+/** Valid IP range */
+validIPRange: ({ startNum, endNum, country }: {
+    startNum: number;
+    endNum: number;
+    country: CountryCode;
+}) => boolean, 
 /** sorted by startNum for ipRangeIndex */
 ipRangeSort: (ipRange: IPRange[]) => IPRange[], 
 /** greatest startNum <= num, or -1 */
@@ -13,4 +23,4 @@ ipRangeIndex: (ipRange: IPRange[], num: number) => number, ipCountryCode: ({ cod
     ips: string;
     ipRange: IPRange[];
 }) => CountryCode;
-export { ipNumericalValue, ipArray, ipRangeSort, ipRangeIndex, ipCountryCode, };
+export { ipNumericalValue, ipArray, validIP, ipRangesMax, validIPRange, ipRangeSort, ipRangeIndex, ipCountryCode, };

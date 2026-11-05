@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 1.1.7
+
+- `recordStats` now returns `false` when the visit is rejected.
+
 ## 1.1.3
 
 - `webAnalytics` now passes a `final` flag to the `record` callback on page-dismissal sends.

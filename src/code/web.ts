@@ -1,12 +1,20 @@
-import { idRandShort, oneMon, rNum, tN } from "@degreesign/utils";
+import { idRandShort, oneMon, oneSec, rNum, tN } from "@degreesign/utils";
 import { PageVisitInitiation, PageVisitPayload, RecordEventInteractionInput, RecordEventPageViewInput, StatsEventType } from "../types/stats";
-import { CountryCode, checkInterval, checkIntervalMax, countriesCodes, webConfig, unknownCountryCode } from "./constants";
+import { CountryCode, checkInterval, checkIntervalMax, countriesCodes, statsIdMaxLength, webConfig, unknownCountryCode } from "./constants";
+import { validKey, validText } from "./validation";
 import { RecordCallback, WebConfig } from "../types/web";
+
+let
+    webAnalyticsStarted = false,
+    webAnalyticsController: AbortController | undefined,
+    webAnalyticsHeartbeat: ReturnType<typeof setTimeout> | undefined;
 
 const
     /** Set Web Configurations */
     setWebConfig = (config: WebConfig) => {
-        webConfig.checkInterval = config.checkInterval || webConfig.checkInterval;
+        const newCheckInterval = config.checkInterval;
+        if (typeof newCheckInterval == `number` && isFinite(newCheckInterval))
+            webConfig.checkInterval = Math.min(Math.max(newCheckInterval, oneSec), checkIntervalMax);
     },
     /** Get Country Code */
     getCountryCode = (): CountryCode => {
@@ -14,7 +22,7 @@ const
             const
                 userLanguage: string = navigator.language || navigator.languages?.[0],
                 countryCode = userLanguage?.split(`-`)?.[1]?.toUpperCase() as CountryCode;
-            return countriesCodes[countryCode] ? countryCode : unknownCountryCode
+            return Object.hasOwn(countriesCodes, countryCode) ? countryCode : unknownCountryCode
         } catch (e) {
             console.log(`getCountryCode failed`, e)
             return unknownCountryCode
@@ -33,7 +41,17 @@ const
                         statsId,
                         time,
                     } = JSON.parse(localStorage?.statsId) || {};
-                    if (statsId && time && time > (tN() - oneMon))
+                    if (
+                        validText({
+                            text: statsId,
+                            maximum: statsIdMaxLength,
+                        })
+                        && validKey(statsId)
+                        && typeof time == `number`
+                        && isFinite(time)
+                        && time > (tN() - oneMon)
+                        && time <= tN()
+                    )
                         statsIdNew = statsId
                 } catch (e) { };
             };
@@ -115,7 +133,12 @@ const
         logged?: boolean;
         record: RecordCallback
     }) => {
+        /** Run once only */
+        if (webAnalyticsStarted) return;
+        webAnalyticsStarted = true;
         try {
+            webAnalyticsController = new AbortController();
+            const { signal } = webAnalyticsController;
 
             let
                 updateInterval = webConfig.checkInterval || checkInterval,
@@ -123,8 +146,7 @@ const
                 hiddenTime = 0,
                 isHidden = false,
                 dismissed = false,
-                lastVisibleTime = tN(),
-                heartbeat: ReturnType<typeof setTimeout>;
+                lastVisibleTime = tN();
 
             const
                 data = webData(logged),
@@ -164,9 +186,9 @@ const
                 },
                 /** self-rescheduling heartbeat (parked while hidden) */
                 scheduleUpdate = () => {
-                    clearTimeout(heartbeat);
-                    if (isHidden) return;
-                    heartbeat = setTimeout(() => {
+                    clearTimeout(webAnalyticsHeartbeat);
+                    if (isHidden || dismissed) return;
+                    webAnalyticsHeartbeat = setTimeout(() => {
                         update(false);
                         scheduleUpdate();
                     }, updateInterval);
@@ -175,20 +197,16 @@ const
                 sendFinal = () => {
                     if (dismissed) return;
                     dismissed = true;
-                    clearTimeout(heartbeat);
+                    clearTimeout(webAnalyticsHeartbeat);
                     // credit the final hidden stretch so dur excludes background time
                     if (isHidden) hiddenTime += (tN() - lastVisibleTime);
                     update(false, true);
+                    // stop listeners after send
+                    webAnalyticsController?.abort();
                 };
 
-            // initiate
-            record(data);
-
-            // periodic update, backing off
-            scheduleUpdate();
-
             // track hidden time (excludes background time from duration)
-            document.onvisibilitychange = () => {
+            document.addEventListener(`visibilitychange`, () => {
                 if (document.visibilityState == `visible`) {
                     if (!isHidden) return;
                     isHidden = false;
@@ -201,39 +219,50 @@ const
                     // park the heartbeat, hiddenTime is only credited on return
                     scheduleUpdate();
                 };
-            };
+            }, { signal });
 
             // bfcache freeze is a pause, not a dismissal; only real dismissals send final
-            window.onpagehide = (event) => {
+            window.addEventListener(`pagehide`, (event) => {
                 if (event?.persisted) {
                     if (!isHidden) {
                         isHidden = true;
                         lastVisibleTime = tN();
                     };
-                    clearTimeout(heartbeat);
+                    clearTimeout(webAnalyticsHeartbeat);
                 } else {
                     sendFinal();
                 };
-            };
+            }, { signal });
 
             // bfcache restore (pagehide can fire with no visibilitychange)
-            window.onpageshow = (event) => {
+            window.addEventListener(`pageshow`, (event) => {
                 if (!event?.persisted) return;
                 if (isHidden) {
                     isHidden = false;
                     hiddenTime += (tN() - lastVisibleTime);
                 };
                 scheduleUpdate();
-            };
+            }, { signal });
 
             try {
                 // @ts-ignore
-                navigation.onnavigatesuccess = () => {
+                navigation.addEventListener(`navigatesuccess`, () => {
                     update(false);
                     scheduleUpdate();
-                };
+                }, { signal });
             } catch (e) { };
+
+            // initiate
+            record(data);
+
+            // periodic update, backing off
+            scheduleUpdate();
         } catch (e) {
+            clearTimeout(webAnalyticsHeartbeat);
+            webAnalyticsHeartbeat = undefined;
+            webAnalyticsController?.abort();
+            webAnalyticsController = undefined;
+            webAnalyticsStarted = false;
             console.log(`webAnalytics failed`, e);
         };
     };

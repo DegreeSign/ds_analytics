@@ -1,7 +1,8 @@
 import { oneDay, oneMin, seoDt } from "@degreesign/utils";
 import { ipRangeUpdate, ipListReset, ipData } from "./manage";
 import { ipRangeSort } from "./analyse";
-import { IPConfig } from "../types/ip";
+import { clampNumber } from "./validation";
+import { IPConfig, IPRange } from "../types/ip";
 import { redJ } from "@degreesign/cache";
 
 let
@@ -12,27 +13,44 @@ clearInterval(ipRangeRefresh);
 clearInterval(ipLimitResetJob);
 
 const
+    /** Refresh interval min */
+    ipRangeRefreshMin = oneMin * 5,
+    /** Refresh interval max */
+    ipRangeRefreshMax = oneDay * 7,
+    /** Reset interval min */
+    ipLimitResetMin = oneMin,
+    /** Reset interval max */
+    ipLimitResetMax = oneDay,
     ipStart = async ({
         ipRangeRefreshInterval = oneDay,
         ipLimitResetInterval = oneMin * 5,
     }: IPConfig) => {
         try {
-            ipData.ipRange = ipRangeSort(redJ(`ip_range.json`, true) || []);
+            const cachedRanges = redJ<IPRange[]>(`ip_range.json`, true);
+            ipData.ipRange = ipRangeSort(Array.isArray(cachedRanges) ? cachedRanges : []);
 
             // fetch ip range
             if (!ipData.ipRange?.length)
                 await ipRangeUpdate();
 
             // update refresh intervals
-            if (typeof ipRangeRefreshInterval == `number`) {
+            if (Number.isFinite(ipRangeRefreshInterval)) {
                 if (ipRangeRefresh) clearInterval(ipRangeRefresh);
-                ipRangeRefresh = setInterval(ipRangeUpdate, ipRangeRefreshInterval);
+                ipRangeRefresh = setInterval(ipRangeUpdate, clampNumber({
+                    value: ipRangeRefreshInterval,
+                    minimum: ipRangeRefreshMin,
+                    maximum: ipRangeRefreshMax,
+                }));
             };
 
             // reset ip limits
-            if (typeof ipLimitResetInterval == `number`) {
+            if (Number.isFinite(ipLimitResetInterval)) {
                 if (ipLimitResetJob) clearInterval(ipLimitResetJob);
-                ipLimitResetJob = setInterval(ipListReset, ipLimitResetInterval);
+                ipLimitResetJob = setInterval(ipListReset, clampNumber({
+                    value: ipLimitResetInterval,
+                    minimum: ipLimitResetMin,
+                    maximum: ipLimitResetMax,
+                }));
             };
         } catch (e) {
             console.log(seoDt(), `ipStart failed`, e);

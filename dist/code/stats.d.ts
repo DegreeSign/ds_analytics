@@ -6,7 +6,7 @@ declare const recordStats: ({ ipRange, ips, data }: {
     ipRange: IPRange[];
     ips: string;
     data: PageVisitPayload;
-}) => void, combineStats: (days: string[]) => TrafficDataDay, compareDateStrings: ({ startDay, endDay, }: {
+}) => boolean, combineStats: (days: string[]) => TrafficDataDay, compareDateStrings: ({ startDay, endDay, }: {
     startDay: DateString;
     endDay?: DateString;
 }) => string[] | undefined, compareStats: ({ startDay, endDay, includeRaw, }: {

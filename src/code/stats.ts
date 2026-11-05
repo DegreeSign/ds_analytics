@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import {
     rNum,
     NumberObjObj,
@@ -12,7 +13,6 @@ import {
 import {
     redJ,
     safeFolder,
-    wrtJ
 } from "@degreesign/cache";
 import {
     StatsFreqVisits,
@@ -40,31 +40,216 @@ import {
 } from "../types/stats";
 import { IPRange } from "../types/ip";
 import { ipCountryCode } from "./analyse";
-import { CountryCode, countriesCodes, statsConfig, trafficDataCacheTtl, uriCorrupt, unknownCountryCode } from "./constants";
+import {
+    CountryCode,
+    countriesCodes,
+    statsConfig,
+    trafficDataCacheTtl,
+    controlCorrupt,
+    dateKeyShape,
+    uriCorrupt,
+    reservedKeys,
+    sessionMaxLength,
+    statsIdMaxLength,
+    tagMaxLength,
+    dimensionMax,
+    durationMax,
+    visitsPerUriMax,
+    urisPerDayMax,
+    visitsPerDayMax,
+    reportDaysMax,
+    reportResolutionMax,
+    timestampFutureLimit,
+    unknownCountryCode,
+} from "./constants";
+import {
+    createDictionary,
+    clampNumber,
+    validText,
+    validKey,
+    validReferrer,
+    validNumber,
+    validEvent,
+} from "./validation";
+import { writeJsonAtomic } from "./storage";
+
+let
+    /** Daily visit counts */
+    trafficVisitsCount: NumberObj = createDictionary();
 
 const
-    trafficData: TrafficData = {},
+    trafficData: TrafficData = createDictionary(),
     trafficDataRead: NumberObj = {},
-    sessionIndex: SessionIndex = {},
+    sessionIndex: SessionIndex = createDictionary(),
     validURI = (uri: string) => {
         if (
             !uri
             || typeof uri != `string`
-            || uri.match(uriCorrupt)
         ) return ``
         if (uri.length > 150)
             uri = uri.slice(0, 150);
+        if (
+            uri[0] != `/`
+            || uri.match(uriCorrupt)
+            || uri.match(controlCorrupt)
+        ) return ``
         return uri
     },
-    readStats = (date: string) => {
+    /** Optional visit identity */
+    validVisitIdentity = ({
+        value,
+        maximum,
+    }: {
+        value?: string,
+        maximum: number,
+    }) =>
+        validText({
+            text: value,
+            maximum,
+        }) && validKey(value)
+            ? value
+            : undefined,
+    /** Sanitise optional fields */
+    sanitiseVisitFields = ({
+        tag,
+        referrer,
+        code,
+        winW,
+        winH,
+        dur,
+    }: {
+        tag?: string,
+        referrer?: string,
+        code?: CountryCode,
+        winW?: number,
+        winH?: number,
+        dur?: number,
+    }) => ({
+        tag: validText({
+            text: tag,
+            maximum: tagMaxLength,
+        }) && validKey(tag)
+            ? tag
+            : undefined,
+        referrer: validReferrer(referrer) && referrer
+            ? referrer
+            : undefined,
+        code: code !== undefined && Object.hasOwn(countriesCodes, code)
+            ? code
+            : undefined,
+        winW: winW !== undefined && validNumber({ value: winW })
+            ? Math.min(winW, dimensionMax)
+            : undefined,
+        winH: winH !== undefined && validNumber({ value: winH })
+            ? Math.min(winH, dimensionMax)
+            : undefined,
+        dur: dur !== undefined && validNumber({
+            value: dur,
+            maximum: Number.MAX_VALUE,
+        })
+            ? Math.min(dur, durationMax)
+            : undefined,
+    }),
+    /** Reportable visit fallback */
+    reportableVisit = (visit: PageVisitRecord) => {
+        if (!visit.statsId) visit.statsId = visit.session;
+        if (!visit.event) visit.event = StatsEventType.pageview;
+        return visit
+    },
+    /** Valid stored visit */
+    validStoredVisit = (visit: PageVisitRecord) => {
+        if (
+            !visit
+            || typeof visit != `object`
+            || Array.isArray(visit)
+        ) return false
+        if (
+            typeof visit.timestamp != `number`
+            || !isFinite(visit.timestamp)
+        ) return false
+        if (!validEvent(visit.event)) return false
+        if (visit.logged !== undefined && typeof visit.logged != `boolean`) return false
+
+        // sanitise optional fields
+        const
+            statsId = validVisitIdentity({
+                value: visit.statsId,
+                maximum: statsIdMaxLength,
+            }),
+            session = validVisitIdentity({
+                value: visit.session,
+                maximum: sessionMaxLength,
+            });
+        if (!statsId && !session) return false
+        Object.assign(visit, {
+            ...sanitiseVisitFields(visit),
+            statsId,
+            session,
+        });
+        return true
+    },
+    readStats = (date: string): TrafficDataDay | undefined => {
         try {
-            if (!trafficData[date])
-                trafficData[date] = redJ(`${statsConfig.trafficDir}${date}.json`, true) || {};
+            if (!dateKeyShape.test(date)) return;
+            const cachedDay = trafficData[date];
+            if (cachedDay) {
+                trafficDataRead[date] = Date.now();
+                return cachedDay;
+            };
+            const
+                filePath = `${statsConfig.trafficDir}${date}.json`,
+                day: TrafficDataDay = createDictionary();
+            let
+                totalVisits = 0,
+                scannedVisits = 0,
+                uriCount = 0;
+            if (existsSync(filePath)) {
+                const storedDay = redJ<TrafficDataDay>(filePath, true);
+                if (
+                    !storedDay
+                    || typeof storedDay != `object`
+                    || Array.isArray(storedDay)
+                ) return;
+                for (const uri in storedDay) {
+                    if (!Object.hasOwn(storedDay, uri)) continue;
+                    if (
+                        uriCount >= urisPerDayMax
+                        || totalVisits >= visitsPerDayMax
+                        || scannedVisits >= visitsPerDayMax
+                    ) break;
+                    uriCount++;
+                    const
+                        safeUri = validURI(uri),
+                        visits = storedDay[uri];
+                    if (!safeUri || !Array.isArray(visits)) continue;
+                    const
+                        boundedVisits = visits.slice(0, visitsPerUriMax),
+                        uriRemaining = visitsPerUriMax - (day[safeUri]?.length || 0),
+                        visitLimit = Math.min(
+                            boundedVisits.length,
+                            visitsPerDayMax - scannedVisits,
+                            visitsPerDayMax - totalVisits,
+                            uriRemaining
+                        ),
+                        validVisits: PageVisitRecord[] = [];
+                    for (let i = 0; i < visitLimit; i++) {
+                        scannedVisits++;
+                        const visit = boundedVisits[i];
+                        if (!validStoredVisit(visit)) continue;
+                        validVisits.push(reportableVisit(visit));
+                        totalVisits++;
+                    };
+                    if (validVisits.length)
+                        day[safeUri] = (day[safeUri] || []).concat(validVisits);
+                };
+            };
+            trafficData[date] = day;
+            trafficVisitsCount[date] = totalVisits;
             trafficDataRead[date] = Date.now();
-            return trafficData[date];
+            return day;
         } catch (e) {
             console.log(seoDt(), `readStats failed`, e);
-            return {};
+            return;
         };
     },
     saveStats = () => {
@@ -72,10 +257,16 @@ const
             const
                 today = dateStandard(new Date()),
                 todayData = readStats(today);
-            if (objLen(todayData))
-                wrtJ(`${statsConfig.trafficDir}${today}.json`, todayData);
+            if (
+                todayData
+                && objLen(todayData)
+                && !writeJsonAtomic({
+                    filePath: `${statsConfig.trafficDir}${today}.json`,
+                    data: todayData,
+                })
+            ) return;
 
-            // evict stale cached days to avoid unbounded memory
+            // evict stale cached days
             for (const date in trafficData) {
                 if (
                     date != today
@@ -84,13 +275,14 @@ const
                     delete trafficData[date];
                     delete trafficDataRead[date];
                     delete sessionIndex[date];
+                    delete trafficVisitsCount[date];
                 };
             };
         } catch (e) { console.log(seoDt(), `saveStats failed`, e); };
     },
     getSessionIndex = (date: string, uri: string, visits: PageVisitRecord[]) => {
         let dateIndex = sessionIndex[date];
-        if (!dateIndex) dateIndex = sessionIndex[date] = {};
+        if (!dateIndex) dateIndex = sessionIndex[date] = createDictionary<SessionIndex[string]>();
         if (!dateIndex[uri]) {
             const map = new Map<string, number>();
             for (let i = 0; i < visits.length; i++) {
@@ -109,70 +301,129 @@ const
         ipRange: IPRange[],
         ips: string,
         data: PageVisitPayload,
-    }) => {
+    }): boolean => {
         try {
 
-            // validate data
-            const
-                today = dateStandard(new Date()),
-                uri = validURI(data?.uri),
-                session = data?.session,
-                dur = data?.dur;
-
+            // require plain data object
             if (
-                !session
-                || !uri
-            ) return
+                !data
+                || typeof data != `object`
+                || Array.isArray(data)
+            ) return false
+
+            // sanitise optional payload fields
+            const
+                now = Date.now(),
+                today = dateStandard(new Date(now)),
+                uri = validURI(data.uri),
+                session = validVisitIdentity({
+                    value: data.session,
+                    maximum: sessionMaxLength,
+                }),
+                statsId = validVisitIdentity({
+                    value: data.statsId,
+                    maximum: statsIdMaxLength,
+                }),
+                event = validEvent(data.event) ? data.event : undefined,
+                logged = data.logged === true,
+                durationProvided = data.dur !== undefined,
+                {
+                    tag,
+                    referrer,
+                    code: requestCode,
+                    winW,
+                    winH,
+                    dur,
+                } = sanitiseVisitFields({
+                    tag: data.tag,
+                    referrer: data.referrer,
+                    code: data.code,
+                    winW: data.winW,
+                    winH: data.winH,
+                    dur: data.dur,
+                }),
+                // clamp skewed timestamps
+                timestamp = typeof data.timestamp == `number`
+                    && isFinite(data.timestamp)
+                    && data.timestamp > now - oneDay
+                    && data.timestamp < now + timestampFutureLimit
+                    ? data.timestamp
+                    : now;
+
+            // reject unknown events
+            if (data.event !== undefined && !event) return false
+            if (!session || !uri) return false
 
             const trafficData = readStats(today)
-            if (!trafficData[uri])
-                trafficData[uri] = [];
+            if (!trafficData) return false;
+            let visits = trafficData[uri];
+
+            if (!visits) {
+                // limit distinct URIs
+                if (objLen(trafficData) >= urisPerDayMax) return false;
+                // limit daily visits
+                if ((trafficVisitsCount[today] || 0) >= visitsPerDayMax) return false;
+                visits = trafficData[uri] = [];
+            };
 
             // update data
             const
-                visits = trafficData[uri],
                 uriIndex = getSessionIndex(today, uri, visits),
-                visitIndex = dur ? uriIndex.get(session) : undefined;
+                visitIndex = durationProvided ? uriIndex.get(session) : undefined;
 
             if (
                 visitIndex != undefined
                 && visits[visitIndex]
             ) {
-                visits[visitIndex].dur = dur;
+                if (dur !== undefined)
+                    visits[visitIndex].dur = dur;
 
                 // add data
             } else {
 
+                // limit URI visits
+                if (visits.length >= visitsPerUriMax) return false;
+                // limit daily visits
+                if ((trafficVisitsCount[today] || 0) >= visitsPerDayMax) return false;
+
                 const code = ipCountryCode({
-                    code: data.code,
+                    code: requestCode,
                     ips,
                     ipRange,
                 });
 
-                visits.push({
-                    statsId: data.statsId,
-                    session: data.session,
-                    timestamp: data.timestamp,
-                    event: data.event,
-                    winW: data.winW,
-                    winH: data.winH,
-                    referrer: data.referrer,
-                    logged: data.logged ? true : false,
+                // optional fields allowed
+                visits.push(reportableVisit({
+                    statsId,
+                    session,
+                    timestamp,
+                    event,
+                    winW,
+                    winH,
+                    referrer,
+                    logged,
                     code,
                     dur,
-                    tag: data.tag,
-                });
+                    tag,
+                } as PageVisitRecord));
+                trafficVisitsCount[today] = (trafficVisitsCount[today] || 0) + 1;
                 if (!uriIndex.has(session))
                     uriIndex.set(session, visits.length - 1);
             }
+
+            return true
         } catch (e) {
             console.log(seoDt(), `recordStats failed`, e);
+            return false
         };
     },
     combineStats = (days: string[]) => {
-        const traffic: TrafficDataDay = {};
-        for (let i = 0; i < days.length; i++) {
+        const
+            dayCount = Math.min(days.length, reportDaysMax),
+            traffic: TrafficDataDay = createDictionary();
+        for (let i = 0; i < dayCount; i++) {
             const d = readStats(days[i]);
+            if (!d) continue;
             if (objLen(d))
                 for (const p in d) {
                     if (!traffic[p]) traffic[p] = [];
@@ -199,6 +450,8 @@ const
                 dateReqStrArray: string[] = [],
                 startTime = new Date(startDay).getTime();
 
+            if (!isFinite(startTime)) return
+
             // one day
             if (startDay == endDay || !endDay) {
                 dateReqStrArray.push(startDay);
@@ -208,9 +461,15 @@ const
                 // range of days
             } else {
                 const
-                    endTime = new Date(endDay).getTime(),
-                    days = Math.round((endTime - startTime) / oneDay),
-                    { thisPeriod, prvPeriod } = statsPeriodStr({ endTime, days });
+                    endTime = new Date(endDay).getTime();
+
+                if (!isFinite(endTime)) return
+
+                const days = Math.round((endTime - startTime) / oneDay);
+
+                if (days < 1 || days > reportDaysMax) return
+
+                const { thisPeriod, prvPeriod } = statsPeriodStr({ endTime, days });
                 dateReqStrArray.push(thisPeriod);
                 dateReqStrArray.push(prvPeriod);
             };
@@ -255,16 +514,17 @@ const
                 yesterdayCutOff = todayCutOff - oneDay,
                 yesterdayDate = dateStandard(yesterdayCutOff),
                 prvCutOff = todayCutOff - (oneDay * 2),
-                trafficToday: TrafficDataDay = {},
-                trafficYesterday: TrafficDataDay = {};
+                trafficToday: TrafficDataDay = createDictionary(),
+                trafficYesterday: TrafficDataDay = createDictionary();
 
-            // bucket visits directly from each day (no merged intermediate)
+            // bucket visits per day
             for (const date of [
                 todayDate, // today
                 yesterdayDate, // yesterday
                 dateStandard(prvCutOff), // preceding day
             ]) {
                 const day = readStats(date);
+                if (!day) continue;
                 for (const page in day) {
                     const visits = day[page];
                     for (let i = 0; i < visits.length; i++) {
@@ -313,7 +573,13 @@ const
         num: number,
         endTime?: number,
     }) => Array
-        .from({ length: num }, (_, i) => i)
+        .from({
+            length: clampNumber({
+                value: num,
+                minimum: 1,
+                maximum: reportDaysMax,
+            }),
+        }, (_, i) => i)
         .map(n => {
             return dateStandard(endTime - oneDay * n)
         }).join(`,`),
@@ -329,13 +595,18 @@ const
     } => {
         try {
             const
+                daysClamped = clampNumber({
+                    value: days,
+                    minimum: 1,
+                    maximum: reportDaysMax,
+                }),
                 thisPeriod = getPeriodStr({
-                    num: days,
+                    num: daysClamped,
                     endTime,
                 }),
                 prvPeriod = getPeriodStr({
-                    num: days,
-                    endTime: endTime - days * oneDay,
+                    num: daysClamped,
+                    endTime: endTime - daysClamped * oneDay,
                 });
             return {
                 thisPeriod,
@@ -359,9 +630,13 @@ const
         visitorsObj: NumberObjObj,
         visitId: string,
     }) => {
+        if (
+            reservedKeys.includes(typeName)
+            || reservedKeys.includes(visitId)
+        ) return
         visitsObj[typeName] =
             (visitsObj[typeName] || 0) + 1;
-        if (!visitorsObj[typeName]) visitorsObj[typeName] = {};
+        if (!visitorsObj[typeName]) visitorsObj[typeName] = createDictionary();
         visitorsObj[typeName][visitId] = 1;
     },
     formatVisits = ({
@@ -478,11 +753,11 @@ const
             chartVisitors: number[] = [],
             visitorCounts: NumberObj = {};
 
-        // precompute unique visitors per timestamp (avoids Object.keys in the bucket loop)
+        // precompute visitor counts
         for (let i = 0; i < timestampList.length; i++)
             visitorCounts[timestampList[i]] = objLen(timeVisitors[timestampList[i]]);
 
-        // single monotonic scan over sorted timestamps (buckets are [start, end))
+        // single monotonic bucket scan
         let t = 0;
         for (let i = 0; i < resolution; i++) {
             const
@@ -503,14 +778,14 @@ const
         return { chartVisits, chartVisitors }
     },
     tagAccumulator = (): TagMetricAccumulator => ({
-        eventTotals: {},
-        visitorsCount: {},
-        countriesVisits: {},
-        countriesVisitors: {},
-        deviceVisits: {},
-        deviceVisitors: {},
-        timeVisits: {},
-        timeVisitors: {},
+        eventTotals: createDictionary(),
+        visitorsCount: createDictionary(),
+        countriesVisits: createDictionary(),
+        countriesVisitors: createDictionary(),
+        deviceVisits: createDictionary(),
+        deviceVisitors: createDictionary(),
+        timeVisits: createDictionary(),
+        timeVisitors: createDictionary(),
     }),
     tagVisitAdd = ({
         tagTotals,
@@ -526,19 +801,19 @@ const
         deviceType: StatsDeviceType,
     }) => {
         // time series
-        if (!tagTotals.timeVisits[tag]) tagTotals.timeVisits[tag] = {};
+        if (!tagTotals.timeVisits[tag]) tagTotals.timeVisits[tag] = createDictionary();
         tagTotals.timeVisits[tag][visitData.timestamp] =
             (tagTotals.timeVisits[tag][visitData.timestamp] || 0) + 1;
-        if (!tagTotals.timeVisitors[tag]) tagTotals.timeVisitors[tag] = {};
-        if (!tagTotals.timeVisitors[tag][visitData.timestamp]) tagTotals.timeVisitors[tag][visitData.timestamp] = {};
+        if (!tagTotals.timeVisitors[tag]) tagTotals.timeVisitors[tag] = createDictionary();
+        if (!tagTotals.timeVisitors[tag][visitData.timestamp]) tagTotals.timeVisitors[tag][visitData.timestamp] = createDictionary();
         tagTotals.timeVisitors[tag][visitData.timestamp][visitId] =
             (tagTotals.timeVisitors[tag][visitData.timestamp][visitId] || 0) + 1;
 
         // country
-        if (!tagTotals.countriesVisits[tag]) tagTotals.countriesVisits[tag] = {};
-        if (!tagTotals.countriesVisitors[tag]) tagTotals.countriesVisitors[tag] = {};
+        if (!tagTotals.countriesVisits[tag]) tagTotals.countriesVisits[tag] = createDictionary();
+        if (!tagTotals.countriesVisitors[tag]) tagTotals.countriesVisitors[tag] = createDictionary();
         statsAddOne({
-            typeName: visitData.code && countriesCodes[visitData.code] ?
+            typeName: visitData.code && Object.hasOwn(countriesCodes, visitData.code) ?
                 visitData.code : unknownCountryCode,
             visitsObj: tagTotals.countriesVisits[tag],
             visitorsObj: tagTotals.countriesVisitors[tag],
@@ -550,7 +825,7 @@ const
             mobile: 0,
             desktop: 0,
         };
-        if (!tagTotals.deviceVisitors[tag]) tagTotals.deviceVisitors[tag] = {};
+        if (!tagTotals.deviceVisitors[tag]) tagTotals.deviceVisitors[tag] = createDictionary();
         statsAddOne({
             typeName: deviceType,
             visitsObj: tagTotals.deviceVisits[tag],
@@ -560,7 +835,7 @@ const
 
         // totals
         tagTotals.eventTotals[tag] = (tagTotals.eventTotals[tag] || 0) + 1;
-        if (!tagTotals.visitorsCount[tag]) tagTotals.visitorsCount[tag] = {};
+        if (!tagTotals.visitorsCount[tag]) tagTotals.visitorsCount[tag] = createDictionary();
         tagTotals.visitorsCount[tag][visitId] =
             (tagTotals.visitorsCount[tag][visitId] || 0) + 1;
     },
@@ -577,12 +852,12 @@ const
     }): StatsTagMetricSets => {
         const
             days = dateReqStr?.split(`,`),
-            tagMetrics: StatsTagMetricSets = {};
+            tagMetrics: StatsTagMetricSets = createDictionary();
         for (const tag in tagTotals.eventTotals) {
             const
                 { chartVisits, chartVisitors } = chartSeries({
-                    timeVisits: tagTotals.timeVisits[tag] || {},
-                    timeVisitors: tagTotals.timeVisitors[tag] || {},
+                    timeVisits: tagTotals.timeVisits[tag] || createDictionary(),
+                    timeVisitors: tagTotals.timeVisitors[tag] || createDictionary(),
                     resolution,
                     days,
                     updateStartTime,
@@ -590,12 +865,12 @@ const
             tagMetrics[tag] = {
                 total: tagTotals.eventTotals[tag],
                 countries: formatVisits({
-                    visitors: tagTotals.countriesVisitors[tag] || {},
-                    visits: tagTotals.countriesVisits[tag] || {},
+                    visitors: tagTotals.countriesVisitors[tag] || createDictionary(),
+                    visits: tagTotals.countriesVisits[tag] || createDictionary(),
                 }),
                 devices: formatVisits({
-                    visitors: tagTotals.deviceVisitors[tag] || {},
-                    visits: tagTotals.deviceVisits[tag] || {},
+                    visitors: tagTotals.deviceVisitors[tag] || createDictionary(),
+                    visits: tagTotals.deviceVisits[tag] || createDictionary(),
                 }),
                 chartEvents: chartVisits,
                 chartVisitors,
@@ -631,27 +906,27 @@ const
                 totalDurMeanCount = 0;
 
             const
-                visitorsCount: NumberObj = {},
-                freqVisitors: StatsFreqVisits = {},
-                countriesVisits: NumberObj = {},
-                countriesVisitors: NumberObjObj = {},
+                visitorsCount: NumberObj = createDictionary(),
+                freqVisitors: StatsFreqVisits = createDictionary(),
+                countriesVisits: NumberObj = createDictionary(),
+                countriesVisitors: NumberObjObj = createDictionary(),
                 deviceVisits: StatsDeviceObj<number> = {
                     mobile: 0,
                     desktop: 0,
                 },
-                deviceVisitors: NumberObjObj = {},
-                timeVisitors: NumberObjObj = {},
-                timeVisits: NumberObj = {},
-                pageVisitors: NumberObjObj = {},
-                dayDataTarget: TrafficDataDay = {},
-                dayDataFiltered: TrafficDataDay = {},
-                spamVisitors: NumberObj = {},
+                deviceVisitors: NumberObjObj = createDictionary(),
+                timeVisitors: NumberObjObj = createDictionary(),
+                timeVisits: NumberObj = createDictionary(),
+                pageVisitors: NumberObjObj = createDictionary(),
+                dayDataTarget: TrafficDataDay = createDictionary(),
+                dayDataFiltered: TrafficDataDay = createDictionary(),
+                spamVisitors: NumberObj = createDictionary(),
                 spamTimestamps: NumberObj = {},
                 dimAccumulator = (): DimAccumulator => ({ sumW: 0, sumH: 0, count: 0 }),
                 durMeanAccumulator = (): DurMeanAccumulator => ({ sum: 0, count: 0 }),
-                mobileDimAccum: { [pageName: string]: DimAccumulator } = {},
-                desktopDimAccum: { [pageName: string]: DimAccumulator } = {},
-                durMeanAccum: { [pageName: string]: DurMeanAccumulator } = {},
+                mobileDimAccum: { [pageName: string]: DimAccumulator } = createDictionary(),
+                desktopDimAccum: { [pageName: string]: DimAccumulator } = createDictionary(),
+                durMeanAccum: { [pageName: string]: DurMeanAccumulator } = createDictionary(),
                 mobileAllAcc = dimAccumulator(),
                 desktopAllAcc = dimAccumulator(),
                 dimMean = (acc?: DimAccumulator): DeviceWidthHeight =>
@@ -661,13 +936,28 @@ const
                             Math.round((acc.sumH / acc.count) / 10) * 10,
                         ]
                         : [0, 0],
-                dataObj: PageTrafficDataObj = {},
+                dataObj: PageTrafficDataObj = createDictionary(),
                 clicksAccumulator = tagAccumulator(),
                 inviewsAccumulator = tagAccumulator(),
                 allTimeVisits: NumberObj = {},
-                allTimeVisitors: NumberObjObj = {};
+                allTimeVisitors: NumberObjObj = createDictionary();
 
-            // build all-time counts (for spam detection)
+            // chart resolution
+            const
+                days = dateReqStr?.split(`,`),
+                daysCount = days?.length;
+
+            resolution = clampNumber({
+                value: resolution || (
+                    daysCount == 1 ? 24
+                        : daysCount == 7 ? 14
+                            : daysCount
+                ),
+                minimum: 1,
+                maximum: reportResolutionMax,
+            });
+
+            // build all-time counts
             for (const uri in dayData) {
 
                 if (
@@ -686,7 +976,7 @@ const
                     if (!visitData.statsId) continue;
                     allTimeVisits[timestamp] =
                         (allTimeVisits[timestamp] || 0) + 1;
-                    if (!allTimeVisitors[timestamp]) allTimeVisitors[timestamp] = {};
+                    if (!allTimeVisitors[timestamp]) allTimeVisitors[timestamp] = createDictionary();
                     allTimeVisitors[timestamp][visitData.statsId] =
                         (allTimeVisitors[timestamp]?.[visitData.statsId] || 0) + 1;
                 };
@@ -713,17 +1003,6 @@ const
                 };
             };
 
-            // chart
-            const
-                days = dateReqStr?.split(`,`),
-                daysCount = days?.length;
-
-            resolution = resolution || (
-                daysCount == 1 ? 24
-                    : daysCount == 7 ? 14
-                        : daysCount
-            );
-
             // process pages
             for (const uri in dayDataTarget) {
 
@@ -744,7 +1023,7 @@ const
                         : getURIAlias(uri),
                     visits = dayDataTarget[uri];
 
-                if (!pageVisitors[pageName]) pageVisitors[pageName] = {};
+                if (!pageVisitors[pageName]) pageVisitors[pageName] = createDictionary();
 
                 // process page visits
                 for (let i = 0; i < visits.length; i++) {
@@ -772,12 +1051,12 @@ const
                     if (visitData.event == StatsEventType.pageview) {
                         timeVisits[timestamp] =
                             (timeVisits[timestamp] || 0) + 1;
-                        if (!timeVisitors[timestamp]) timeVisitors[timestamp] = {};
+                        if (!timeVisitors[timestamp]) timeVisitors[timestamp] = createDictionary();
                         timeVisitors[timestamp][visitId] =
                             (timeVisitors[timestamp]?.[visitId] || 0) + 1;
                     };
 
-                    // interaction events (clicks / inviews) — per tag, not counted as visits
+                    // per-tag interaction events
                     if (
                         visitData.event == StatsEventType.click
                         || visitData.event == StatsEventType.inview
@@ -796,7 +1075,7 @@ const
 
                     // country
                     statsAddOne({
-                        typeName: visitData.code && countriesCodes[visitData.code] ?
+                        typeName: visitData.code && Object.hasOwn(countriesCodes, visitData.code) ?
                             visitData.code : unknownCountryCode,
                         visitsObj: countriesVisits,
                         visitorsObj: countriesVisitors,
@@ -813,15 +1092,26 @@ const
                     isMobile ? mobileVisits++ : desktopVisits++;
 
                     // dimensions
-                    const dimAccum = isMobile ? mobileDimAccum : desktopDimAccum;
-                    if (!dimAccum[pageName]) dimAccum[pageName] = dimAccumulator();
-                    dimAccum[pageName].sumW += visitData.winW;
-                    dimAccum[pageName].sumH += visitData.winH;
-                    dimAccum[pageName].count++;
-                    const allAcc = isMobile ? mobileAllAcc : desktopAllAcc;
-                    allAcc.sumW += visitData.winW;
-                    allAcc.sumH += visitData.winH;
-                    allAcc.count++;
+                    const
+                        winW = visitData.winW,
+                        winH = visitData.winH;
+
+                    if (
+                        typeof winW == `number`
+                        && isFinite(winW)
+                        && typeof winH == `number`
+                        && isFinite(winH)
+                    ) {
+                        const dimAccum = isMobile ? mobileDimAccum : desktopDimAccum;
+                        if (!dimAccum[pageName]) dimAccum[pageName] = dimAccumulator();
+                        dimAccum[pageName].sumW += winW;
+                        dimAccum[pageName].sumH += winH;
+                        dimAccum[pageName].count++;
+                        const allAcc = isMobile ? mobileAllAcc : desktopAllAcc;
+                        allAcc.sumW += winW;
+                        allAcc.sumH += winH;
+                        allAcc.count++;
+                    };
 
                     // referral
                     const referrer = visitData.referrer;
@@ -867,7 +1157,7 @@ const
 
                     // frequent
                     if (calcFreqVisits) {
-                        if (!freqVisitors[visitId]) freqVisitors[visitId] = {};
+                        if (!freqVisitors[visitId]) freqVisitors[visitId] = createDictionary();
                         if (!freqVisitors[visitId][pageName]) freqVisitors[visitId][pageName] = [];
                         freqVisitors[visitId][pageName].push(visitData);
                     };

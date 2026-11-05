@@ -505,14 +505,16 @@ const step = (ids, text) => ({ ids, text });
 f(`host`, `host`, `host app`, `host app`, 0, true);
 f(`entry`, `entries`, `index.ts`, `src/index.ts`, 82);
 f(`browser`, `entries`, `browser.ts`, `src/browser.ts`, 17);
-f(`web`, `browser`, `web.ts`, `src/code/web.ts`, 247);
+f(`web`, `browser`, `web.ts`, `src/code/web.ts`, 276);
 f(`start`, `start`, `start.ts`, `src/code/start.ts`, 21);
-f(`stats`, `stats`, `stats.ts`, `src/code/stats.ts`, 1043);
-f(`ip`, `ip`, `update.ts`, `src/code/update.ts`, 44);
-f(`range`, `ip`, `range.ts`, `src/code/range.ts`, 48);
-f(`analyse`, `ip`, `analyse.ts`, `src/code/analyse.ts`, 75);
-f(`manage`, `ip`, `manage.ts`, `src/code/manage.ts`, 97);
-f(`constants`, `config`, `constants.ts`, `src/code/constants.ts`, 49);
+f(`stats`, `stats`, `stats.ts`, `src/code/stats.ts`, 1333);
+f(`validation`, `stats`, `validation.ts`, `src/code/validation.ts`, 90);
+f(`storage`, `stats`, `storage.ts`, `src/code/storage.ts`, 37);
+f(`ip`, `ip`, `update.ts`, `src/code/update.ts`, 62);
+f(`range`, `ip`, `range.ts`, `src/code/range.ts`, 100);
+f(`analyse`, `ip`, `analyse.ts`, `src/code/analyse.ts`, 167);
+f(`manage`, `ip`, `manage.ts`, `src/code/manage.ts`, 143);
+f(`constants`, `config`, `constants.ts`, `src/code/constants.ts`, 97);
 f(`countries`, `config`, `countries.ts`, `src/code/countries.ts`, 5);
 f(`statsTypes`, `types`, `stats.ts`, `src/types/stats.ts`, 265);
 f(`ipTypes`, `types`, `ip.ts`, `src/types/ip.ts`, 57);
@@ -531,108 +533,158 @@ n(`entry`, `public`, 13, `public exports`, `index.ts surface`,
 n(`browser`, `public`, 5, `browser exports`, `webAnalytics + recordEvent + types`,
     `Only the capture helpers and their types leave the browser bundle.`);
 
-n(`web`, `setWebConfig`, 8, `setWebConfig`, `(config: WebConfig) => void`,
+n(`web`, `setWebConfig`, 14, `setWebConfig`, `(config: WebConfig) => void`,
     `Overrides the heartbeat interval used between payloads.`);
-n(`web`, `getCountryCode`, 12, `getCountryCode`, `() => CountryCode`,
+n(`web`, `getCountryCode`, 20, `getCountryCode`, `() => CountryCode`,
     `Derives an approximate country from the browser language.`);
-n(`web`, `tempStatsId`, 24, `tempStatsId`, `() => string`,
-    `Reuses a month-long anonymous visitor id from localStorage or mints one.`);
-n(`web`, `getPathName`, 56, `getPathName`, `() => string`,
+n(`web`, `tempStatsId`, 32, `tempStatsId`, `() => string`,
+    `Reuses a valid month-long anonymous visitor id from localStorage or mints one.`);
+n(`web`, `getPathName`, 74, `getPathName`, `() => string`,
     `Reads the current pathname behind a try/catch.`);
-n(`web`, `statsBasics`, 64, `statsBasics`, `(logged?: boolean) => PageVisitInitiation`,
+n(`web`, `statsBasics`, 82, `statsBasics`, `(logged?: boolean) => PageVisitInitiation`,
     `Builds the session id, timestamp and URI for a fresh visit.`);
-n(`web`, `getReferrer`, 78, `getReferrer`, `() => string`,
+n(`web`, `getReferrer`, 96, `getReferrer`, `() => string`,
     `Reads document.referrer behind a try/catch.`);
-n(`web`, `webData`, 88, `webData`, `(logged?: boolean) => PageVisitPayload`,
+n(`web`, `webData`, 106, `webData`, `(logged?: boolean) => PageVisitPayload`,
     `Deprecated pageview builder kept for existing callers.`);
-n(`web`, `recordEvent`, 103, `recordEvent`, `(input) => PageVisitPayload`,
+n(`web`, `recordEvent`, 121, `recordEvent`, `(input) => PageVisitPayload`,
     `Builds a pageview, click or in-view payload from one input.`);
-n(`web`, `webAnalytics`, 111, `webAnalytics`, `({ logged?, record }) => void`,
+n(`web`, `webAnalytics`, 129, `webAnalytics`, `({ logged?, record }) => void`,
     `Sends the first payload, then repeats on a backing-off heartbeat until dismissal.`);
 
 n(`start`, `analyticsServer`, 7, `startAnalyticsServer`, `(config: ServiceConfig) => Promise<void>`,
     `Starts the IP service, applies the stats config and starts the stats runtime.`);
 
-n(`stats`, `trafficData`, 46, `trafficData`, `TrafficData`,
+n(`stats`, `trafficData`, 81, `trafficData`, `TrafficData`,
     `Daily traffic cache, keyed by date and page.`);
-n(`stats`, `sessionIndex`, 48, `sessionIndex`, `SessionIndex`,
+n(`stats`, `trafficVisitsCount`, 78, `trafficVisitsCount`, `NumberObj`,
+    `Daily visit counts used to enforce the per-day limit.`);
+n(`stats`, `sessionIndex`, 83, `sessionIndex`, `SessionIndex`,
     `First-visit index per date, page and session.`);
-n(`stats`, `validURI`, 49, `validURI`, `(uri: string) => string`,
-    `Rejects corrupt URIs and trims long ones to 150 characters.`);
-n(`stats`, `readStats`, 59, `readStats`, `(date: string) => TrafficDataDay`,
-    `Loads one day into memory and stamps its last-read time.`);
-n(`stats`, `saveStats`, 70, `saveStats`, `() => void`,
-    `Flushes today's traffic and evicts days idle beyond the TTL.`);
-n(`stats`, `getSessionIndex`, 91, `getSessionIndex`, `(date, uri, visits) => Map<string, number>`,
+n(`stats`, `validURI`, 84, `validURI`, `(uri: string) => string`,
+    `Rejects non-absolute, corrupt or reserved URIs and trims long ones to 150 characters.`);
+n(`stats`, `validVisitIdentity`, 99, `validVisitIdentity`, `({ value?, maximum }) => string | undefined`,
+    `Returns a safe bounded identity key, or undefined when it is invalid.`);
+n(`stats`, `sanitiseVisitFields`, 113, `sanitiseVisitFields`, `({ tag, referrer, code, winW, winH, dur }) => fields`,
+    `Drops or clamps every optional visit field before it is stored.`);
+n(`stats`, `reportableVisit`, 154, `reportableVisit`, `(visit: PageVisitRecord) => PageVisitRecord`,
+    `Fills the statsId and event fallbacks on a visit that is safe to report.`);
+n(`stats`, `validStoredVisit`, 160, `validStoredVisit`, `(visit: PageVisitRecord) => boolean`,
+    `Rejects malformed stored visits and sanitises the fields it keeps.`);
+n(`stats`, `readStats`, 191, `readStats`, `(date: string) => TrafficDataDay | undefined`,
+    `Loads, bounds and validates one day into memory and stamps its last-read time.`);
+n(`stats`, `saveStats`, 255, `saveStats`, `() => void`,
+    `Flushes today's traffic atomically and evicts days idle beyond the TTL.`);
+n(`stats`, `getSessionIndex`, 283, `getSessionIndex`, `(date, uri, visits) => Map<string, number>`,
     `Indexes the first visit of each session per page.`);
-n(`stats`, `recordStats`, 104, `recordStats`, `({ ipRange, ips, data }) => void`,
-    `Validates a payload and appends or updates it in today's traffic file.`);
-n(`stats`, `combineStats`, 172, `combineStats`, `(days: string[]) => TrafficDataDay`,
+n(`stats`, `recordStats`, 296, `recordStats`, `({ ipRange, ips, data }) => boolean`,
+    `Validates the session and URI, sanitises optional fields, applies the statsId and event fallbacks, then appends or updates the visit.`);
+n(`stats`, `combineStats`, 420, `combineStats`, `(days: string[]) => TrafficDataDay`,
     `Merges the requested days into one page-keyed traffic map.`);
-n(`stats`, `compareDateStrings`, 186, `compareDateStrings`, `({ startDay, endDay? }) => string[]`,
+n(`stats`, `compareDateStrings`, 437, `compareDateStrings`, `({ startDay, endDay? }) => string[]`,
     `Builds the current and previous period date lists.`);
-n(`stats`, `compareStats`, 224, `compareStats`, `({ startDay, endDay?, includeRaw? }) => reports`,
+n(`stats`, `compareStats`, 483, `compareStats`, `({ startDay, endDay?, includeRaw? }) => reports`,
     `Analyses the current period against the previous one.`);
-n(`stats`, `compare24hr`, 246, `compare24hr`, `(includeRaw = false) => reports`,
+n(`stats`, `compare24hr`, 505, `compare24hr`, `(includeRaw = false) => reports`,
     `Buckets the last 48 hours into two 30-minute-resolution reports.`);
-n(`stats`, `getURIAlias`, 303, `getURIAlias`, `(uri: string) => string`,
+n(`stats`, `getURIAlias`, 563, `getURIAlias`, `(uri: string) => string`,
     `Maps a URI to its configured display alias.`);
-n(`stats`, `getPeriodStr`, 309, `getPeriodStr`, `({ num, endTime? }) => string`,
+n(`stats`, `getPeriodStr`, 569, `getPeriodStr`, `({ num, endTime? }) => string`,
     `Joins the last num days as one date string.`);
-n(`stats`, `statsPeriodStr`, 320, `statsPeriodStr`, `({ days, endTime? }) => { thisPeriod, prvPeriod }`,
+n(`stats`, `statsPeriodStr`, 586, `statsPeriodStr`, `({ days, endTime? }) => { thisPeriod, prvPeriod }`,
     `Produces the two comma-separated date strings for a period pair.`);
-n(`stats`, `statsAddOne`, 351, `statsAddOne`, `({ typeName, visitsObj, visitorsObj, visitId }) => void`,
+n(`stats`, `statsAddOne`, 622, `statsAddOne`, `({ typeName, visitsObj, visitorsObj, visitId }) => void`,
     `Adds one visit and one visitor to a dimension tally.`);
-n(`stats`, `formatVisits`, 367, `formatVisits`, `({ visitors, visits }) => VisitorVisitsType[]`,
+n(`stats`, `formatVisits`, 642, `formatVisits`, `({ visitors, visits }) => VisitorVisitsType[]`,
     `Turns a visitor map into a sorted [name, visitors, visits] list.`);
-n(`stats`, `freqVisits`, 384, `freqVisits`, `({ visitorsCount, freqVisitors }) => string[]`,
+n(`stats`, `freqVisits`, 659, `freqVisits`, `({ visitorsCount, freqVisitors }) => string[]`,
     `Summarises repeat visitors that come back on more than three days.`);
-n(`stats`, `chartSeries`, 457, `chartSeries`, `({ timeVisits, timeVisitors, resolution, days }) => charts`,
+n(`stats`, `chartSeries`, 732, `chartSeries`, `({ timeVisits, timeVisitors, resolution, days }) => charts`,
     `Buckets visits and visitors into a fixed number of chart points.`);
-n(`stats`, `tagAccumulator`, 505, `tagAccumulator`, `() => TagMetricAccumulator`,
+n(`stats`, `tagAccumulator`, 780, `tagAccumulator`, `() => TagMetricAccumulator`,
     `Creates empty per-tag counters for clicks or in-views.`);
-n(`stats`, `tagVisitAdd`, 515, `tagVisitAdd`, `({ tagTotals, tag, visitData, visitId, deviceType }) => void`,
+n(`stats`, `tagVisitAdd`, 790, `tagVisitAdd`, `({ tagTotals, tag, visitData, visitId, deviceType }) => void`,
     `Folds one interaction event into its tag's totals.`);
-n(`stats`, `buildTagMetrics`, 567, `buildTagMetrics`, `({ tagTotals, dateReqStr, resolution }) => StatsTagMetricSets`,
+n(`stats`, `buildTagMetrics`, 842, `buildTagMetrics`, `({ tagTotals, dateReqStr, resolution }) => StatsTagMetricSets`,
     `Finalises counters into per-tag totals, countries, devices and charts.`);
-n(`stats`, `analyseStats`, 607, `analyseStats`, `(params: StatsReqParams) => StatsAnalysisResult`,
+n(`stats`, `analyseStats`, 882, `analyseStats`, `(params: StatsReqParams) => StatsAnalysisResult`,
     `Filters spam and aggregates pages, countries, devices, charts, tags and repeats.`);
-n(`stats`, `configStats`, 1013, `configStats`, `(config: StatsConfig) => void`,
+n(`stats`, `configStats`, 1303, `configStats`, `(config: StatsConfig) => void`,
     `Copies the stats config into the shared runtime config.`);
-n(`stats`, `startStats`, 1021, `startStats`, `() => void`,
+n(`stats`, `startStats`, 1311, `startStats`, `() => void`,
     `Ensures the traffic folder exists and flushes it every 15 seconds.`);
 
-n(`ip`, `ipStart`, 15, `ipStart`, `({ ipRangeRefreshInterval?, ipLimitResetInterval? }) => Promise<void>`,
+n(`validation`, `createDictionary`, 11, `createDictionary`, `<T>() => T`,
+    `Creates a null-prototype dictionary so request keys never touch Object.prototype.`);
+n(`validation`, `clampNumber`, 13, `clampNumber`, `({ value, minimum, maximum }) => number`,
+    `Rounds a number into a bounded integer range.`);
+n(`validation`, `validText`, 26, `validText`, `({ text?, maximum }) => boolean`,
+    `Accepts an optional string within the length limit.`);
+n(`validation`, `validKey`, 38, `validKey`, `(key?: string) => boolean`,
+    `Accepts an optional non-empty key outside the corrupt and reserved sets.`);
+n(`validation`, `validReferrer`, 45, `validReferrer`, `(referrer?: string) => boolean`,
+    `Accepts an optional absolute HTTP or HTTPS referrer.`);
+n(`validation`, `validNumber`, 63, `validNumber`, `({ value?, minimum?, maximum? }) => boolean`,
+    `Accepts an optional finite number inside the bounds.`);
+n(`validation`, `validEvent`, 79, `validEvent`, `(event?: StatsEventType) => boolean`,
+    `Accepts an optional known stats event.`);
+
+n(`storage`, `writeJsonAtomic`, 6, `writeJsonAtomic`, `<T>({ filePath, data }) => boolean`,
+    `Writes JSON to a private temporary file and renames it into place.`);
+
+n(`ip`, `ipStart`, 24, `ipStart`, `({ ipRangeRefreshInterval?, ipLimitResetInterval? }) => Promise<void>`,
     `Loads the cached ranges, fetches them if empty and schedules refresh and reset.`);
 
-n(`range`, `ipCountryDataUpdate`, 7, `ipCountryDataUpdate`, `() => Promise<IPRange[]>`,
-    `Streams the IPv4 range CSV and parses it into sorted ranges.`);
+n(`range`, `ipRangeParse`, 16, `ipRangeParse`, `(line: string) => IPRange | undefined`,
+    `Parses and validates one CSV row into a numeric range.`);
+n(`range`, `ipRangeAppend`, 27, `ipRangeAppend`, `({ ipRanges, lines }) => boolean`,
+    `Appends valid parsed rows until the range limit is reached.`);
+n(`range`, `ipRangeOverflow`, 37, `ipRangeOverflow`, `() => IPRange[]`,
+    `Reports an oversized range download and returns an empty result.`);
+n(`range`, `ipCountryDataUpdate`, 41, `ipCountryDataUpdate`, `() => Promise<IPRange[]>`,
+    `Streams the IPv4 range CSV within size and count limits and parses it into sorted ranges.`);
 
-n(`analyse`, `ipNumericalValue`, 7, `ipNumericalValue`, `(ip: string) => number`,
+n(`analyse`, `ipNumericalValue`, 28, `ipNumericalValue`, `(ip: string) => number`,
     `Converts a dotted IPv4 address to one number.`);
-n(`analyse`, `ipArray`, 15, `ipArray`, `(ips: string) => string[]`,
-    `Splits a proxy list into individual addresses.`);
-n(`analyse`, `ipRangeSort`, 23, `ipRangeSort`, `(ipRange: IPRange[]) => IPRange[]`,
-    `Drops bad rows and sorts ranges by start number once.`);
-n(`analyse`, `ipRangeIndex`, 33, `ipRangeIndex`, `(ipRange, num) => number`,
+n(`analyse`, `ipArray`, 44, `ipArray`, `(ips: string) => string[]`,
+    `Splits a bounded proxy list into canonical addresses.`);
+n(`analyse`, `ipv4Mapped`, 55, `ipv4Mapped`, `(ip: string) => string`,
+    `Unwraps an IPv4-mapped IPv6 address into dotted form.`);
+n(`analyse`, `canonicalIP`, 66, `canonicalIP`, `(ip: string) => string`,
+    `Returns one safe canonical IP key, or an empty string when invalid.`);
+n(`analyse`, `validIP`, 89, `validIP`, `(ip: string) => boolean`,
+    `Accepts an IP only when it has a canonical safe form.`);
+n(`analyse`, `ipRangesMax`, 93, `ipRangesMax`, `number`,
+    `Ceiling on the number of parsed country ranges.`);
+n(`analyse`, `validIPRange`, 97, `validIPRange`, `({ startNum, endNum, country }) => boolean`,
+    `Checks range bounds and the country code before a range is kept.`);
+n(`analyse`, `ipRangeSort`, 105, `ipRangeSort`, `(ipRange: IPRange[]) => IPRange[]`,
+    `Drops invalid rows, bounds the list and sorts ranges by start number once.`);
+n(`analyse`, `ipRangeIndex`, 120, `ipRangeIndex`, `(ipRange, num) => number`,
     `Binary-searches the greatest start number not above the address.`);
-n(`analyse`, `ipCountryCode`, 45, `ipCountryCode`, `({ code?, ips, ipRange }) => CountryCode`,
+n(`analyse`, `ipCountryCode`, 132, `ipCountryCode`, `({ code?, ips, ipRange }) => CountryCode`,
     `Resolves the visitor country from the payload or the IP range.`);
 
-n(`manage`, `ipResetLimits`, 10, `ipResetLimits`, `() => IPList`,
+n(`manage`, `ipResetLimits`, 18, `ipResetLimits`, `() => IPList`,
     `Creates empty priority, white, black and general lists.`);
-n(`manage`, `ipCheck`, 23, `ipCheck`, `(ips: string) => 1 | 0`,
+n(`manage`, `ipBlackListExpiry`, 12, `ipBlackListExpiry`, `Map<string, number>`,
+    `Expiry time for each blacklisted address.`);
+n(`manage`, `ipCounterSizes`, 14, `ipCounterSizes`, `WeakMap<NumberObj, number>`,
+    `Tracks the entry count of each rate-limit counter map.`);
+n(`manage`, `ipCounterAdd`, 31, `ipCounterAdd`, `({ counters, ip }) => void`,
+    `Increments one bounded counter entry.`);
+n(`manage`, `ipCheck`, 39, `ipCheck`, `(ips: string) => 1 | 0`,
     `Applies rate limits and blacklists an IP that exceeds the general limit.`);
-n(`manage`, `ipWhiteList`, 49, `ipWhiteList`, `(ips: string) => void`,
+n(`manage`, `ipWhiteList`, 78, `ipWhiteList`, `(ips: string) => void`,
     `Increments the white-list counter for each address.`);
-n(`manage`, `ipPriorityList`, 61, `ipPriorityList`, `(ips: string) => void`,
+n(`manage`, `ipPriorityList`, 90, `ipPriorityList`, `(ips: string) => void`,
     `Increments the priority counter for each address.`);
-n(`manage`, `ipData`, 72, `ipData`, `IPData`,
+n(`manage`, `ipData`, 101, `ipData`, `IPData`,
     `Shared in-memory IP lists and the loaded country ranges.`);
-n(`manage`, `ipRangeUpdate`, 76, `ipRangeUpdate`, `() => Promise<void>`,
-    `Downloads new ranges, keeps them in memory and stores them as JSON.`);
-n(`manage`, `ipListReset`, 85, `ipListReset`, `() => void`,
-    `Clears the rate-limit counters.`);
+n(`manage`, `ipRangeUpdate`, 105, `ipRangeUpdate`, `() => Promise<void>`,
+    `Downloads new ranges, keeps them in memory and stores them atomically as JSON.`);
+n(`manage`, `ipListReset`, 115, `ipListReset`, `() => void`,
+    `Clears the rate-limit counters while retaining unexpired blacklist entries.`);
 
 n(`constants`, `ipSourceUrl`, 10, `ipSourceUrl`, `string`,
     `jsDelivr URL of the dbip country range CSV.`);
@@ -646,11 +698,43 @@ n(`constants`, `checkIntervalMax`, 20, `checkIntervalMax`, `number`,
     `Ceiling for the backing-off browser heartbeat.`);
 n(`constants`, `trafficDataCacheTtl`, 22, `trafficDataCacheTtl`, `number`,
     `Idle time after which a cached day is dropped.`);
-n(`constants`, `uriCorrupt`, 23, `uriCorrupt`, `RegExp`,
-    `Rejects URIs with a colon, percent, space or .html.`);
-n(`constants`, `statsConfig`, 24, `statsConfig`, `StatsConfig`,
+n(`constants`, `controlCorrupt`, 24, `controlCorrupt`, `RegExp`,
+    `Rejects control characters in stored text.`);
+n(`constants`, `dateKeyShape`, 26, `dateKeyShape`, `RegExp`,
+    `Accepts only YYYY-MM-DD traffic bucket keys.`);
+n(`constants`, `uriCorrupt`, 27, `uriCorrupt`, `RegExp`,
+    `Rejects corrupt URI patterns and traversal segments.`);
+n(`constants`, `keyCorrupt`, 29, `keyCorrupt`, `RegExp`,
+    `Rejects keys outside letters, digits, underscore and hyphen.`);
+n(`constants`, `reservedKeys`, 31, `reservedKeys`, `string[]`,
+    `Object-corrupting keys that are never accepted.`);
+n(`constants`, `sessionMaxLength`, 33, `sessionMaxLength`, `number`,
+    `Maximum session identifier length.`);
+n(`constants`, `statsIdMaxLength`, 35, `statsIdMaxLength`, `number`,
+    `Maximum stats identifier length.`);
+n(`constants`, `referrerMaxLength`, 37, `referrerMaxLength`, `number`,
+    `Maximum referrer length.`);
+n(`constants`, `tagMaxLength`, 39, `tagMaxLength`, `number`,
+    `Maximum interaction tag length.`);
+n(`constants`, `dimensionMax`, 41, `dimensionMax`, `number`,
+    `Maximum accepted window dimension.`);
+n(`constants`, `durationMax`, 43, `durationMax`, `number`,
+    `Maximum accepted visit duration in seconds.`);
+n(`constants`, `visitsPerUriMax`, 45, `visitsPerUriMax`, `number`,
+    `Maximum stored visits per URI.`);
+n(`constants`, `urisPerDayMax`, 47, `urisPerDayMax`, `number`,
+    `Maximum distinct URIs per day.`);
+n(`constants`, `visitsPerDayMax`, 49, `visitsPerDayMax`, `number`,
+    `Maximum stored visits per day.`);
+n(`constants`, `reportDaysMax`, 51, `reportDaysMax`, `number`,
+    `Maximum days in one report period.`);
+n(`constants`, `reportResolutionMax`, 53, `reportResolutionMax`, `number`,
+    `Maximum chart resolution.`);
+n(`constants`, `timestampFutureLimit`, 55, `timestampFutureLimit`, `number`,
+    `Allowed clock drift into the future.`);
+n(`constants`, `statsConfig`, 56, `statsConfig`, `StatsConfig`,
     `Live stats settings: folder, domain, excludes, engines and aliases.`);
-n(`constants`, `webConfig`, 31, `webConfig`, `WebConfig`,
+n(`constants`, `webConfig`, 63, `webConfig`, `WebConfig`,
     `Live browser settings.`);
 
 n(`countries`, `countriesCodes`, 1, `countriesCodes`, `Record<string, 1>`,
@@ -666,6 +750,10 @@ n(`statsTypes`, `DeviceWidthHeight`, 15, `DeviceWidthHeight`, `[number, number]`
     `Rounded viewport width and height.`);
 n(`statsTypes`, `PageDeviceDimensions`, 17, `PageDeviceDimensions`, `{ [page]: DeviceWidthHeight[] }`,
     `Device dimensions grouped by page.`);
+n(`statsTypes`, `DimAccumulator`, 22, `DimAccumulator`, `{ sumW, sumH, count }`,
+    `Running sums for a device dimension mean.`);
+n(`statsTypes`, `DurMeanAccumulator`, 29, `DurMeanAccumulator`, `{ sum, count }`,
+    `Running sums for a filtered duration mean.`);
 n(`statsTypes`, `StatsEventType`, 51, `StatsEventType`, `{ pageview, click, inview }`,
     `The three tracked event kinds.`);
 n(`statsTypes`, `RecordEventPageViewInput`, 58, `RecordEventPageViewInput`, `{ logged?, eventType, uriOverride? }`,
@@ -682,6 +770,8 @@ n(`statsTypes`, `TrafficDataDay`, 101, `TrafficDataDay`, `{ [page]: PageVisitRec
     `One day of visits keyed by page URI.`);
 n(`statsTypes`, `TrafficData`, 105, `TrafficData`, `{ [date]: TrafficDataDay }`,
     `Daily traffic held in memory.`);
+n(`statsTypes`, `SessionIndex`, 110, `SessionIndex`, `{ [date]: { [page]: Map<string, number> } }`,
+    `First-visit index per date, page and session.`);
 n(`statsTypes`, `PageTrafficData`, 125, `PageTrafficData`, `PageTrafficDataBasics`,
     `Per-page counters before finalisation.`);
 n(`statsTypes`, `PageTrafficDataFinal`, 128, `PageTrafficDataFinal`, `basics + durMean + verifiedVisits`,
@@ -692,6 +782,10 @@ n(`statsTypes`, `PageTrafficDataObjFinal`, 139, `PageTrafficDataObjFinal`, `{ [p
     `Per-page map of finalised counters.`);
 n(`statsTypes`, `VisitorVisitsType`, 143, `VisitorVisitsType`, `[string, number, number]`,
     `[name, visitors, visits] tuple used in reports.`);
+n(`statsTypes`, `TaggedObj`, 146, `TaggedObj<T>`, `{ [tag]: T }`,
+    `Object keyed by an interaction tag.`);
+n(`statsTypes`, `TagMetricAccumulator`, 151, `TagMetricAccumulator`, `{ eventTotals, visitorsCount, countries, devices, time }`,
+    `Per-tag counters collected while analysing interactions.`);
 n(`statsTypes`, `StatsTagMetricSet`, 163, `StatsTagMetricSet`, `{ total, countries, devices, charts, visitors }`,
     `Aggregated metrics for one interaction tag.`);
 n(`statsTypes`, `StatsTagMetricSets`, 174, `StatsTagMetricSets`, `{ [tag]: StatsTagMetricSet }`,
@@ -774,6 +868,9 @@ e(`start.analyticsServer`, `stats.startStats`, `call`);
 e(`web.setWebConfig`, `constants.webConfig`, `store`);
 e(`web.getCountryCode`, `countries.countriesCodes`, `call`);
 e(`web.getCountryCode`, `constants.unknownCountryCode`, `call`);
+e(`web.tempStatsId`, `validation.validText`, `call`);
+e(`web.tempStatsId`, `validation.validKey`, `call`);
+e(`web.tempStatsId`, `constants.statsIdMaxLength`, `call`);
 e(`web.webData`, `web.tempStatsId`, `call`);
 e(`web.webData`, `web.statsBasics`, `call`);
 e(`web.webData`, `web.getReferrer`, `call`);
@@ -787,26 +884,68 @@ e(`web.webAnalytics`, `constants.checkIntervalMax`, `call`);
 e(`web.statsBasics`, `web.getPathName`, `call`);
 
 // Traffic pipeline.
+e(`validation.validKey`, `constants.keyCorrupt`, `call`);
+e(`validation.validKey`, `constants.reservedKeys`, `call`);
+e(`validation.validReferrer`, `constants.controlCorrupt`, `call`);
+e(`validation.validReferrer`, `constants.referrerMaxLength`, `call`);
+e(`validation.validReferrer`, `validation.validText`, `call`);
 e(`stats.validURI`, `constants.uriCorrupt`, `call`);
+e(`stats.validURI`, `constants.controlCorrupt`, `call`);
+e(`stats.validVisitIdentity`, `validation.validText`, `call`);
+e(`stats.validVisitIdentity`, `validation.validKey`, `call`);
+e(`stats.sanitiseVisitFields`, `validation.validText`, `call`);
+e(`stats.sanitiseVisitFields`, `validation.validKey`, `call`);
+e(`stats.sanitiseVisitFields`, `validation.validReferrer`, `call`);
+e(`stats.sanitiseVisitFields`, `validation.validNumber`, `call`);
+e(`stats.sanitiseVisitFields`, `countries.countriesCodes`, `call`);
+e(`stats.validStoredVisit`, `validation.validEvent`, `call`);
+e(`stats.validStoredVisit`, `stats.validVisitIdentity`, `call`);
+e(`stats.validStoredVisit`, `stats.sanitiseVisitFields`, `call`);
+e(`stats.readStats`, `stats.validURI`, `call`);
+e(`stats.readStats`, `stats.validStoredVisit`, `call`);
+e(`stats.readStats`, `stats.reportableVisit`, `call`);
 e(`stats.readStats`, `stats.trafficData`, `store`);
+e(`stats.readStats`, `stats.trafficVisitsCount`, `store`);
 e(`stats.readStats`, `constants.statsConfig`, `call`);
+e(`stats.readStats`, `constants.dateKeyShape`, `call`);
+e(`stats.readStats`, `constants.urisPerDayMax`, `call`);
+e(`stats.readStats`, `constants.visitsPerDayMax`, `call`);
+e(`stats.readStats`, `constants.visitsPerUriMax`, `call`);
 e(`stats.saveStats`, `stats.readStats`, `call`);
+e(`stats.saveStats`, `storage.writeJsonAtomic`, `call`);
 e(`stats.saveStats`, `stats.trafficData`, `store`);
+e(`stats.saveStats`, `constants.statsConfig`, `call`);
 e(`stats.saveStats`, `constants.trafficDataCacheTtl`, `call`);
 e(`stats.getSessionIndex`, `stats.sessionIndex`, `store`);
+e(`stats.getSessionIndex`, `validation.createDictionary`, `call`);
 e(`stats.recordStats`, `stats.validURI`, `call`);
+e(`stats.recordStats`, `stats.validVisitIdentity`, `call`);
+e(`stats.recordStats`, `stats.sanitiseVisitFields`, `call`);
+e(`stats.recordStats`, `stats.reportableVisit`, `call`);
+e(`stats.recordStats`, `validation.validEvent`, `call`);
 e(`stats.recordStats`, `stats.readStats`, `call`);
 e(`stats.recordStats`, `stats.getSessionIndex`, `call`);
+e(`stats.recordStats`, `stats.trafficVisitsCount`, `store`);
 e(`stats.recordStats`, `analyse.ipCountryCode`, `call`);
+e(`stats.recordStats`, `constants.sessionMaxLength`, `call`);
+e(`stats.recordStats`, `constants.statsIdMaxLength`, `call`);
+e(`stats.recordStats`, `constants.timestampFutureLimit`, `call`);
+e(`stats.recordStats`, `constants.urisPerDayMax`, `call`);
+e(`stats.recordStats`, `constants.visitsPerDayMax`, `call`);
+e(`stats.recordStats`, `constants.visitsPerUriMax`, `call`);
 e(`stats.combineStats`, `stats.readStats`, `call`);
 e(`stats.compareDateStrings`, `stats.statsPeriodStr`, `call`);
+e(`stats.compareDateStrings`, `constants.reportDaysMax`, `call`);
 e(`stats.statsPeriodStr`, `stats.getPeriodStr`, `call`);
+e(`stats.statsPeriodStr`, `validation.clampNumber`, `call`);
+e(`stats.getPeriodStr`, `validation.clampNumber`, `call`);
 e(`stats.compareStats`, `stats.compareDateStrings`, `call`);
 e(`stats.compareStats`, `stats.combineStats`, `call`);
 e(`stats.compareStats`, `stats.analyseStats`, `call`);
 e(`stats.compare24hr`, `stats.readStats`, `call`);
 e(`stats.compare24hr`, `stats.analyseStats`, `call`);
 e(`stats.getURIAlias`, `constants.statsConfig`, `call`);
+e(`stats.statsAddOne`, `constants.reservedKeys`, `call`);
 e(`stats.analyseStats`, `stats.getURIAlias`, `call`);
 e(`stats.analyseStats`, `stats.statsAddOne`, `call`);
 e(`stats.analyseStats`, `stats.tagVisitAdd`, `call`);
@@ -815,14 +954,17 @@ e(`stats.analyseStats`, `stats.formatVisits`, `call`);
 e(`stats.analyseStats`, `stats.buildTagMetrics`, `call`);
 e(`stats.analyseStats`, `stats.freqVisits`, `call`);
 e(`stats.analyseStats`, `stats.tagAccumulator`, `inner`);
+e(`stats.analyseStats`, `validation.clampNumber`, `call`);
 e(`stats.analyseStats`, `constants.statsConfig`, `call`);
 e(`stats.analyseStats`, `countries.countriesCodes`, `call`);
 e(`stats.analyseStats`, `constants.unknownCountryCode`, `call`);
 e(`stats.freqVisits`, `constants.statsConfig`, `call`);
+e(`stats.freqVisits`, `constants.unknownCountryCode`, `call`);
 e(`stats.buildTagMetrics`, `stats.chartSeries`, `call`);
 e(`stats.buildTagMetrics`, `stats.formatVisits`, `call`);
 e(`stats.tagVisitAdd`, `stats.statsAddOne`, `call`);
 e(`stats.tagVisitAdd`, `countries.countriesCodes`, `call`);
+e(`stats.tagVisitAdd`, `constants.unknownCountryCode`, `call`);
 e(`stats.configStats`, `constants.statsConfig`, `store`);
 e(`stats.startStats`, `stats.saveStats`, `event`);
 e(`stats.startStats`, `constants.statsConfig`, `call`);
@@ -832,17 +974,42 @@ e(`ip.ipStart`, `manage.ipRangeUpdate`, `call`);
 e(`ip.ipStart`, `manage.ipListReset`, `call`);
 e(`ip.ipStart`, `analyse.ipRangeSort`, `call`);
 e(`ip.ipStart`, `manage.ipData`, `store`);
+e(`ip.ipStart`, `validation.clampNumber`, `call`);
 e(`manage.ipRangeUpdate`, `range.ipCountryDataUpdate`, `call`);
 e(`manage.ipRangeUpdate`, `manage.ipData`, `store`);
+e(`manage.ipRangeUpdate`, `storage.writeJsonAtomic`, `call`);
+e(`range.ipCountryDataUpdate`, `range.ipRangeAppend`, `call`);
+e(`range.ipCountryDataUpdate`, `range.ipRangeOverflow`, `call`);
 e(`range.ipCountryDataUpdate`, `analyse.ipRangeSort`, `call`);
 e(`range.ipCountryDataUpdate`, `constants.ipSourceUrl`, `store`);
+e(`range.ipRangeParse`, `analyse.validIPRange`, `call`);
+e(`range.ipRangeAppend`, `range.ipRangeParse`, `call`);
+e(`range.ipRangeAppend`, `analyse.ipRangesMax`, `call`);
+e(`analyse.ipArray`, `analyse.canonicalIP`, `call`);
+e(`analyse.canonicalIP`, `analyse.ipv4Mapped`, `call`);
+e(`analyse.canonicalIP`, `constants.reservedKeys`, `call`);
+e(`analyse.validIP`, `analyse.canonicalIP`, `call`);
+e(`analyse.ipRangeSort`, `analyse.validIPRange`, `call`);
+e(`analyse.ipRangeSort`, `analyse.ipRangesMax`, `call`);
 e(`manage.ipCheck`, `analyse.ipArray`, `call`);
+e(`manage.ipCheck`, `analyse.validIP`, `call`);
 e(`manage.ipCheck`, `constants.ipRateLimits`, `call`);
 e(`manage.ipCheck`, `manage.ipData`, `store`);
+e(`manage.ipCheck`, `manage.ipBlackListExpiry`, `call`);
+e(`manage.ipCheck`, `manage.ipCounterAdd`, `call`);
 e(`manage.ipWhiteList`, `analyse.ipArray`, `call`);
+e(`manage.ipWhiteList`, `analyse.validIP`, `call`);
+e(`manage.ipWhiteList`, `manage.ipCounterAdd`, `call`);
 e(`manage.ipPriorityList`, `analyse.ipArray`, `call`);
+e(`manage.ipPriorityList`, `analyse.validIP`, `call`);
+e(`manage.ipPriorityList`, `manage.ipCounterAdd`, `call`);
+e(`manage.ipCounterAdd`, `manage.ipCounterSizes`, `store`);
+e(`manage.ipListReset`, `manage.ipData`, `store`);
+e(`manage.ipListReset`, `manage.ipBlackListExpiry`, `call`);
+e(`manage.ipListReset`, `manage.ipResetLimits`, `call`);
 e(`analyse.ipCountryCode`, `analyse.ipArray`, `call`);
 e(`analyse.ipCountryCode`, `analyse.ipNumericalValue`, `call`);
+e(`analyse.ipCountryCode`, `analyse.validIP`, `call`);
 e(`analyse.ipCountryCode`, `analyse.ipRangeSort`, `call`);
 e(`analyse.ipCountryCode`, `analyse.ipRangeIndex`, `call`);
 e(`analyse.ipCountryCode`, `constants.unknownCountryCode`, `call`);
@@ -856,6 +1023,9 @@ e(`statsTypes.PageVisitRecord`, `statsTypes.StatsEventType`, `type`);
 e(`statsTypes.RecordEventPageViewInput`, `statsTypes.StatsEventType`, `type`);
 e(`statsTypes.RecordEventInteractionInput`, `statsTypes.StatsEventType`, `type`);
 e(`statsTypes.StatsTagMetricSets`, `statsTypes.StatsTagMetricSet`, `type`);
+e(`statsTypes.StatsTagMetricSets`, `statsTypes.TaggedObj`, `type`);
+e(`statsTypes.TagMetricAccumulator`, `statsTypes.TaggedObj`, `type`);
+e(`statsTypes.TagMetricAccumulator`, `statsTypes.StatsDeviceObj`, `type`);
 e(`statsTypes.StatsAnalysisResult`, `statsTypes.StatsTagMetricSets`, `type`);
 e(`statsTypes.StatsAnalysisResult`, `statsTypes.PageTrafficDataFinal`, `type`);
 e(`statsTypes.StatsReqParams`, `statsTypes.TrafficDataDay`, `type`);
@@ -868,6 +1038,7 @@ e(`statsTypes.StatsDeviceObj`, `statsTypes.StatsDevice`, `type`);
 e(`statsTypes.StatsDeviceType`, `statsTypes.StatsDevice`, `type`);
 e(`statsTypes.StatsFreqVisits`, `statsTypes.PageVisitRecord`, `type`);
 e(`statsTypes.StatsConfig`, `constants.statsConfig`, `type`);
+e(`validation.validEvent`, `statsTypes.StatsEventType`, `type`);
 e(`ipTypes.RateLimits`, `constants.ipRateLimits`, `type`);
 e(`ipTypes.IPData`, `ipTypes.IPList`, `type`);
 e(`ipTypes.IPData`, `ipTypes.IPRange`, `type`);
@@ -909,7 +1080,7 @@ FLOWS.visit = {
         step([`entry.public`, `start.analyticsServer`],
             ` On the server, startAnalyticsServer starts the IP service and the stats runtime once.`),
         step([`stats.recordStats`, `analyse.ipCountryCode`],
-            ` recordStats validates the URI and resolves the visitor country from the IP range.`),
+            ` recordStats validates the session and URI, sanitises optional fields, applies the statsId and event fallbacks, rejects invalid visits and resolves the visitor country from the IP range.`),
         step([`stats.readStats`, `stats.saveStats`],
             ` Visits are appended in memory and flushed to the daily traffic JSON file.`),
         step([`stats.compareStats`, `stats.analyseStats`],

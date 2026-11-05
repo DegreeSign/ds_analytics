@@ -60,7 +60,7 @@ pnpm add @degreesign/analytics
 Or load the browser build straight from a CDN (UMD global: `dsAnalytics`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.5/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.7/dist/browser/degreesign.min.js"></script>
 ```
 
 ## Architecture
@@ -125,11 +125,12 @@ await startAnalyticsServer({
 const requestIP = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
 
 if (ipCheck(requestIP)) {
-    recordStats({
+    const stored = recordStats({
         ipRange: ipData.ipRange,
         ips: requestIP,
         data: req.body, // the PageVisitPayload sent by the browser
     });
+    // stored is false when the payload was rejected
 }
 ```
 
@@ -157,7 +158,7 @@ console.log(thisPeriod?.total, thisPeriod?.countries, thisPeriod?.clicks);
 ### 4. CDN version (no bundler)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.5/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.7/dist/browser/degreesign.min.js"></script>
 <script>
     dsAnalytics.setWebConfig({ checkInterval: 5e3 });
 
@@ -183,7 +184,7 @@ Rate-limit and geolocate visitors by IP address. Default thresholds are `general
 
 | Export | Signature | Description |
 | --- | --- | --- |
-| `ipCheck` | `(ips: string) => 1 \| 0 \| undefined` | Validate a raw IP string against the black, general, white and priority lists. Returns `1` when allowed and `0` when blocked (and blacklisted). |
+| `ipCheck` | `(ips: string) => 1 \| 0` | Validate a raw IP string against the black, general, white and priority lists. Returns `1` when allowed and `0` when blocked; malformed or unparsable non-empty input fails closed with `0`. |
 | `ipWhiteList` | `(ips: string) => void` | Add one or more IPs to the trusted white list. |
 | `ipPriorityList` | `(ips: string) => void` | Add one or more IPs to the high-rate-limit priority list. |
 | `ipResetLimits` | `() => IPList` | Return a fresh, empty IP list structure with zeroed counters. |
@@ -203,7 +204,7 @@ Call these from your Node.js backend to bootstrap the service, record incoming v
 | --- | --- | --- |
 | `startAnalyticsServer` | `(config: ServiceConfig) => Promise<void>` | One-call bootstrap: start the IP service, apply the stats config and start persistence. |
 | `configStats` | `(config: StatsConfig) => void` | Configure `trafficDir`, `thisDomain`, `excludeURIs`, `searchEngines` and `uriAlias`. |
-| `recordStats` | `({ ipRange, ips, data }) => void` | Store a `PageVisitPayload` under today's bucket; merges duration updates for the same session. |
+| `recordStats` | `({ ipRange, ips, data }) => boolean` | Validate the session and URI, sanitise optional fields, use `session` as the `statsId` fallback and `pageview` as the missing-event fallback, then store the visit under today's bucket and merge duration updates for the same session; returns `false` when the visit is rejected. |
 | `startStats` | `() => void` | Create the traffic folder and flush cached stats to disk every 15 seconds. |
 | `dateStandard` | `(date) => string` | Normalize a `Date`, timestamp or date string to the `YYYY-MM-DD` bucket key. |
 
@@ -233,6 +234,8 @@ Exported from the browser/UMD bundle and the package entry point. Also available
 | `recordEvent` | `(input: RecordEventPageViewInput \| RecordEventInteractionInput) => PageVisitPayload` | Build a payload for a `pageview`, `click` or `inview` event. `tag` is required for interactions. |
 | `webData` | `(logged?: boolean) => PageVisitPayload` | **Deprecated** — build a pageview payload directly; use `recordEvent` instead. |
 | `getCountryCode` | `() => CountryCode` | Derive an approximate country code from the browser language. |
+
+`recordEvent` URI overrides must be absolute paths starting with `/`. Tags are limited to letters, digits, `_` and `-`, with a maximum of 64 characters.
 
 ### TypeScript Types
 
