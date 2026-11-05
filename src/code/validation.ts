@@ -1,4 +1,4 @@
-import { StatsEventType } from "../types/stats";
+import { PageVisitPayload, StatsEventType } from "../types/stats";
 import {
     controlCorrupt,
     keyCorrupt,
@@ -77,7 +77,28 @@ const
         ),
     /** Optional event type */
     validEvent = (event?: StatsEventType) =>
-        event === undefined || Object.values(StatsEventType).includes(event);
+        event === undefined || Object.values(StatsEventType).includes(event),
+    /** Strict page visit payload shape */
+    validPageVisitPayload = (data?: PageVisitPayload) =>
+        !!data
+        && typeof data.session == `string`
+        && typeof data.statsId == `string`
+        && typeof data.uri == `string`
+        && Object.values(StatsEventType).includes(data.event)
+        && typeof data.timestamp == `number`
+        && isFinite(data.timestamp)
+        && typeof data.winW == `number`
+        && isFinite(data.winW)
+        && typeof data.winH == `number`
+        && isFinite(data.winH)
+        && (data.dur === undefined || (
+            typeof data.dur == `number`
+            && isFinite(data.dur)
+        ))
+        && (data.logged === undefined || typeof data.logged == `boolean`)
+        && (data.tag === undefined || typeof data.tag == `string`)
+        && (data.referrer === undefined || typeof data.referrer == `string`)
+        && (data.code === undefined || typeof data.code == `string`);
 
 export {
     createDictionary,
@@ -87,4 +108,5 @@ export {
     validReferrer,
     validNumber,
     validEvent,
+    validPageVisitPayload,
 };

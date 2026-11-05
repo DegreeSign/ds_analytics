@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 1.1.8
+
+- `recordStats` now returns `false` only for a malformed payload, while degraded and storage-rejected visits return `true`.
+
 ## 1.1.7
 
 - `recordStats` now returns `false` when the visit is rejected.

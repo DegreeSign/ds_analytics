@@ -41,12 +41,6 @@ const
     dimensionMax = 8192,
     /** Duration limit (seconds) */
     durationMax = 43200,
-    /** Visits per URI */
-    visitsPerUriMax = 50_000,
-    /** URIs per day */
-    urisPerDayMax = 5_000,
-    /** Visits per day */
-    visitsPerDayMax = 200_000,
     /** Report days limit */
     reportDaysMax = 366,
     /** Report resolution limit */
@@ -85,9 +79,6 @@ export {
     tagMaxLength,
     dimensionMax,
     durationMax,
-    visitsPerUriMax,
-    urisPerDayMax,
-    visitsPerDayMax,
     reportDaysMax,
     reportResolutionMax,
     timestampFutureLimit,

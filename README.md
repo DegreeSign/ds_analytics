@@ -60,7 +60,7 @@ pnpm add @degreesign/analytics
 Or load the browser build straight from a CDN (UMD global: `dsAnalytics`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.7/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.8/dist/browser/degreesign.min.js"></script>
 ```
 
 ## Architecture
@@ -158,7 +158,7 @@ console.log(thisPeriod?.total, thisPeriod?.countries, thisPeriod?.clicks);
 ### 4. CDN version (no bundler)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.7/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.8/dist/browser/degreesign.min.js"></script>
 <script>
     dsAnalytics.setWebConfig({ checkInterval: 5e3 });
 
@@ -204,7 +204,7 @@ Call these from your Node.js backend to bootstrap the service, record incoming v
 | --- | --- | --- |
 | `startAnalyticsServer` | `(config: ServiceConfig) => Promise<void>` | One-call bootstrap: start the IP service, apply the stats config and start persistence. |
 | `configStats` | `(config: StatsConfig) => void` | Configure `trafficDir`, `thisDomain`, `excludeURIs`, `searchEngines` and `uriAlias`. |
-| `recordStats` | `({ ipRange, ips, data }) => boolean` | Validate the session and URI, sanitise optional fields, use `session` as the `statsId` fallback and `pageview` as the missing-event fallback, then store the visit under today's bucket and merge duration updates for the same session; returns `false` when the visit is rejected. |
+| `recordStats` | `({ ipRange, ips, data }) => boolean` | Validate the full page visit payload shape (with `session` as the `statsId` fallback and `pageview` as the missing-event fallback), sanitise optional fields, then store the visit under today's bucket and merge duration updates for the same session; returns `false` only for a malformed payload, while capped, degraded and storage-rejected visits return `true` without being stored. |
 | `startStats` | `() => void` | Create the traffic folder and flush cached stats to disk every 15 seconds. |
 | `dateStandard` | `(date) => string` | Normalize a `Date`, timestamp or date string to the `YYYY-MM-DD` bucket key. |
 

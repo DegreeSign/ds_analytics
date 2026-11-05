@@ -54,9 +54,6 @@ import {
     tagMaxLength,
     dimensionMax,
     durationMax,
-    visitsPerUriMax,
-    urisPerDayMax,
-    visitsPerDayMax,
     reportDaysMax,
     reportResolutionMax,
     timestampFutureLimit,
@@ -70,12 +67,9 @@ import {
     validReferrer,
     validNumber,
     validEvent,
+    validPageVisitPayload,
 } from "./validation";
 import { writeJsonAtomic } from "./storage";
-
-let
-    /** Daily visit counts */
-    trafficVisitsCount: NumberObj = createDictionary();
 
 const
     trafficData: TrafficData = createDictionary(),
@@ -199,10 +193,6 @@ const
             const
                 filePath = `${statsConfig.trafficDir}${date}.json`,
                 day: TrafficDataDay = createDictionary();
-            let
-                totalVisits = 0,
-                scannedVisits = 0,
-                uriCount = 0;
             if (existsSync(filePath)) {
                 const storedDay = redJ<TrafficDataDay>(filePath, true);
                 if (
@@ -212,39 +202,21 @@ const
                 ) return;
                 for (const uri in storedDay) {
                     if (!Object.hasOwn(storedDay, uri)) continue;
-                    if (
-                        uriCount >= urisPerDayMax
-                        || totalVisits >= visitsPerDayMax
-                        || scannedVisits >= visitsPerDayMax
-                    ) break;
-                    uriCount++;
                     const
                         safeUri = validURI(uri),
                         visits = storedDay[uri];
                     if (!safeUri || !Array.isArray(visits)) continue;
-                    const
-                        boundedVisits = visits.slice(0, visitsPerUriMax),
-                        uriRemaining = visitsPerUriMax - (day[safeUri]?.length || 0),
-                        visitLimit = Math.min(
-                            boundedVisits.length,
-                            visitsPerDayMax - scannedVisits,
-                            visitsPerDayMax - totalVisits,
-                            uriRemaining
-                        ),
-                        validVisits: PageVisitRecord[] = [];
-                    for (let i = 0; i < visitLimit; i++) {
-                        scannedVisits++;
-                        const visit = boundedVisits[i];
+                    const validVisits: PageVisitRecord[] = [];
+                    for (let i = 0; i < visits.length; i++) {
+                        const visit = visits[i];
                         if (!validStoredVisit(visit)) continue;
                         validVisits.push(reportableVisit(visit));
-                        totalVisits++;
                     };
                     if (validVisits.length)
                         day[safeUri] = (day[safeUri] || []).concat(validVisits);
                 };
             };
             trafficData[date] = day;
-            trafficVisitsCount[date] = totalVisits;
             trafficDataRead[date] = Date.now();
             return day;
         } catch (e) {
@@ -275,7 +247,6 @@ const
                     delete trafficData[date];
                     delete trafficDataRead[date];
                     delete sessionIndex[date];
-                    delete trafficVisitsCount[date];
                 };
             };
         } catch (e) { console.log(seoDt(), `saveStats failed`, e); };
@@ -304,29 +275,34 @@ const
     }): boolean => {
         try {
 
-            // require plain data object
-            if (
-                !data
-                || typeof data != `object`
-                || Array.isArray(data)
-            ) return false
+            // apply documented payload fallbacks
+            const payload = {
+                ...data,
+                statsId: data?.statsId || data?.session,
+                event: data?.event === undefined
+                    ? StatsEventType.pageview
+                    : data.event,
+            };
+
+            // require canonical visit shape
+            if (!validPageVisitPayload(payload)) return false
 
             // sanitise optional payload fields
             const
                 now = Date.now(),
                 today = dateStandard(new Date(now)),
-                uri = validURI(data.uri),
+                uri = validURI(payload.uri),
                 session = validVisitIdentity({
-                    value: data.session,
+                    value: payload.session,
                     maximum: sessionMaxLength,
                 }),
                 statsId = validVisitIdentity({
-                    value: data.statsId,
+                    value: payload.statsId,
                     maximum: statsIdMaxLength,
                 }),
-                event = validEvent(data.event) ? data.event : undefined,
-                logged = data.logged === true,
-                durationProvided = data.dur !== undefined,
+                event = payload.event,
+                logged = payload.logged === true,
+                durationProvided = payload.dur !== undefined,
                 {
                     tag,
                     referrer,
@@ -335,36 +311,29 @@ const
                     winH,
                     dur,
                 } = sanitiseVisitFields({
-                    tag: data.tag,
-                    referrer: data.referrer,
-                    code: data.code,
-                    winW: data.winW,
-                    winH: data.winH,
-                    dur: data.dur,
+                    tag: payload.tag,
+                    referrer: payload.referrer,
+                    code: payload.code,
+                    winW: payload.winW,
+                    winH: payload.winH,
+                    dur: payload.dur,
                 }),
                 // clamp skewed timestamps
-                timestamp = typeof data.timestamp == `number`
-                    && isFinite(data.timestamp)
-                    && data.timestamp > now - oneDay
-                    && data.timestamp < now + timestampFutureLimit
-                    ? data.timestamp
+                timestamp = payload.timestamp > now - oneDay
+                    && payload.timestamp < now + timestampFutureLimit
+                    ? payload.timestamp
                     : now;
 
-            // reject unknown events
-            if (data.event !== undefined && !event) return false
-            if (!session || !uri) return false
+            // skip degraded visits
+            if (!session || !uri) return true
 
             const trafficData = readStats(today)
-            if (!trafficData) return false;
+            // skip storage failure
+            if (!trafficData) return true;
             let visits = trafficData[uri];
 
-            if (!visits) {
-                // limit distinct URIs
-                if (objLen(trafficData) >= urisPerDayMax) return false;
-                // limit daily visits
-                if ((trafficVisitsCount[today] || 0) >= visitsPerDayMax) return false;
+            if (!visits)
                 visits = trafficData[uri] = [];
-            };
 
             // update data
             const
@@ -380,11 +349,6 @@ const
 
                 // add data
             } else {
-
-                // limit URI visits
-                if (visits.length >= visitsPerUriMax) return false;
-                // limit daily visits
-                if ((trafficVisitsCount[today] || 0) >= visitsPerDayMax) return false;
 
                 const code = ipCountryCode({
                     code: requestCode,
@@ -406,7 +370,6 @@ const
                     dur,
                     tag,
                 } as PageVisitRecord));
-                trafficVisitsCount[today] = (trafficVisitsCount[today] || 0) + 1;
                 if (!uriIndex.has(session))
                     uriIndex.set(session, visits.length - 1);
             }
@@ -414,7 +377,7 @@ const
             return true
         } catch (e) {
             console.log(seoDt(), `recordStats failed`, e);
-            return false
+            return true
         };
     },
     combineStats = (days: string[]) => {

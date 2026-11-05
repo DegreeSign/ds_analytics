@@ -1,4 +1,4 @@
-import { StatsEventType } from "../types/stats";
+import { PageVisitPayload, StatsEventType } from "../types/stats";
 declare const 
 /** Null-prototype dictionary */
 createDictionary: <T>() => T, 
@@ -24,5 +24,7 @@ validNumber: ({ value, minimum, maximum, }: {
     maximum?: number;
 }) => boolean, 
 /** Optional event type */
-validEvent: (event?: StatsEventType) => boolean;
-export { createDictionary, clampNumber, validText, validKey, validReferrer, validNumber, validEvent, };
+validEvent: (event?: StatsEventType) => boolean, 
+/** Strict page visit payload shape */
+validPageVisitPayload: (data?: PageVisitPayload) => boolean;
+export { createDictionary, clampNumber, validText, validKey, validReferrer, validNumber, validEvent, validPageVisitPayload, };

@@ -32,16 +32,10 @@ tagMaxLength = 64,
 dimensionMax = 8192, 
 /** Duration limit (seconds) */
 durationMax = 43200, 
-/** Visits per URI */
-visitsPerUriMax = 50000, 
-/** URIs per day */
-urisPerDayMax = 5000, 
-/** Visits per day */
-visitsPerDayMax = 200000, 
 /** Report days limit */
 reportDaysMax = 366, 
 /** Report resolution limit */
 reportResolutionMax = 1000, 
 /** Future timestamp drift */
 timestampFutureLimit = 60000, statsConfig: StatsConfig, webConfig: WebConfig;
-export { ipSourceUrl, unknownCountryCode, CountryCode, countriesCodes, ipRateLimits, checkInterval, checkIntervalMax, trafficDataCacheTtl, controlCorrupt, dateKeyShape, uriCorrupt, keyCorrupt, reservedKeys, sessionMaxLength, statsIdMaxLength, referrerMaxLength, tagMaxLength, dimensionMax, durationMax, visitsPerUriMax, urisPerDayMax, visitsPerDayMax, reportDaysMax, reportResolutionMax, timestampFutureLimit, statsConfig, webConfig, };
+export { ipSourceUrl, unknownCountryCode, CountryCode, countriesCodes, ipRateLimits, checkInterval, checkIntervalMax, trafficDataCacheTtl, controlCorrupt, dateKeyShape, uriCorrupt, keyCorrupt, reservedKeys, sessionMaxLength, statsIdMaxLength, referrerMaxLength, tagMaxLength, dimensionMax, durationMax, reportDaysMax, reportResolutionMax, timestampFutureLimit, statsConfig, webConfig, };
