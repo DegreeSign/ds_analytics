@@ -75,16 +75,18 @@ const
     trafficData: TrafficData = createDictionary(),
     trafficDataRead: NumberObj = {},
     sessionIndex: SessionIndex = createDictionary(),
+    /** Canonical visit path */
     validURI = (uri: string) => {
         if (
             !uri
             || typeof uri != `string`
         ) return ``
+        if (uri[0] != `/`)
+            uri = `/${uri}`;
         if (uri.length > 150)
             uri = uri.slice(0, 150);
         if (
-            uri[0] != `/`
-            || uri.match(uriCorrupt)
+            uri.match(uriCorrupt)
             || uri.match(controlCorrupt)
         ) return ``
         return uri

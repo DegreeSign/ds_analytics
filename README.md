@@ -60,7 +60,7 @@ pnpm add @degreesign/analytics
 Or load the browser build straight from a CDN (UMD global: `dsAnalytics`):
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.8/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@latest/dist/browser/degreesign.min.js"></script>
 ```
 
 ## Architecture
@@ -158,7 +158,7 @@ console.log(thisPeriod?.total, thisPeriod?.countries, thisPeriod?.clicks);
 ### 4. CDN version (no bundler)
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@1.1.8/dist/browser/degreesign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@degreesign/analytics@latest/dist/browser/degreesign.min.js"></script>
 <script>
     dsAnalytics.setWebConfig({ checkInterval: 5e3 });
 

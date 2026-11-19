@@ -1,5 +1,9 @@
 # ChangeLog
 
+## 1.1.9
+
+- `recordStats` now prefixes a missing leading slash on visit URIs, and stored visits are read under the same normalised URI.
+
 ## 1.1.8
 
 - `recordStats` now returns `false` only for a malformed payload, while degraded and storage-rejected visits return `true`.
